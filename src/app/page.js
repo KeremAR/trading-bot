@@ -50,6 +50,7 @@ export default function Home() {
   const [isConnected, setIsConnected] = useState(false);
   const reconnectTimeout = useRef(null);
   const [showSMA, setShowSMA] = useState(true);
+  const [showEMA, setShowEMA] = useState(true);
   
   // Available coins list
   const coins = [
@@ -173,6 +174,17 @@ export default function Home() {
     };
   }, [coin, timeInterval, connectWebSocket]);
 
+  // EMA hesaplama fonksiyonu
+  const calculateEMA = (data, windowSize) => {
+    const k = 2 / (windowSize + 1);
+    let emaArray = [data[0].c]; // İlk değer başlangıç için kullanılır
+    for (let i = 1; i < data.length; i++) {
+      const ema = data[i].c * k + emaArray[i - 1] * (1 - k);
+      emaArray.push(ema);
+    }
+    return emaArray;
+  };
+
   // Update chart when chartData changes
   useEffect(() => {
     if (chartData.length > 0 && chartRef.current) {
@@ -183,6 +195,7 @@ export default function Home() {
       }
 
       const smaData = calculateSMA(chartData, 10); // 10 periyotluk SMA
+      const emaData = calculateEMA(chartData, 10); // 10 periyotluk EMA
 
       const datasets = [
         {
@@ -209,6 +222,18 @@ export default function Home() {
           data: smaData.map((value, index) => ({ x: chartData[index].x, y: value })),
           type: 'line',
           borderColor: 'rgba(75, 192, 192, 0.6)',
+          borderWidth: 2,
+          pointRadius: 0,
+          fill: false,
+        });
+      }
+
+      if (showEMA) {
+        datasets.push({
+          label: 'EMA',
+          data: emaData.map((value, index) => ({ x: chartData[index].x, y: value })),
+          type: 'line',
+          borderColor: 'rgba(255, 159, 64, 0.6)',
           borderWidth: 2,
           pointRadius: 0,
           fill: false,
@@ -315,7 +340,7 @@ export default function Home() {
         }
       });
     }
-  }, [chartData, timeInterval, coin, selectedCoin, lastPrice, showSMA]);
+  }, [chartData, timeInterval, coin, selectedCoin, lastPrice, showSMA, showEMA]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -405,14 +430,24 @@ export default function Home() {
                   </button>
                 ))}
               </div>
-              <button
-                onClick={() => setShowSMA(!showSMA)}
-                className={`px-3 py-1 rounded-md ${
-                  showSMA ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                }`}
-              >
-                Toggle SMA
-              </button>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => setShowSMA(!showSMA)}
+                  className={`px-3 py-1 rounded-md ${
+                    showSMA ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                  }`}
+                >
+                  Toggle SMA
+                </button>
+                <button
+                  onClick={() => setShowEMA(!showEMA)}
+                  className={`px-3 py-1 rounded-md ${
+                    showEMA ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                  }`}
+                >
+                  Toggle EMA
+                </button>
+              </div>
             </div>
           </div>
 
