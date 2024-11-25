@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Chart from "chart.js/auto";
 import { CandlestickController, CandlestickElement } from 'chartjs-chart-financial';
 import 'chartjs-adapter-date-fns';
@@ -44,6 +44,10 @@ export default function Home() {
   });
   const [currentPrice, setCurrentPrice] = useState(45000); // Example price
   const [selectedCoin, setSelectedCoin] = useState('BTC');
+  const [lastPrice, setLastPrice] = useState(null);
+  const ws = useRef(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const reconnectTimeout = useRef(null);
   
   // Available coins list
   const coins = [
@@ -70,58 +74,106 @@ export default function Home() {
     return (parseFloat(btcAmount) * parseFloat(currentPrice)).toFixed(2);
   };
 
-  // Update chart data when coin or timeInterval changes
+  // WebSocket bağlantısını yöneten fonksiyon
+  const connectWebSocket = useCallback(() => {
+    if (ws.current?.readyState === WebSocket.OPEN) {
+      ws.current.close();
+    }
+
+    ws.current = new WebSocket(`wss://stream.binance.com:9443/ws/${coin.toLowerCase()}@kline_${timeInterval}`);
+
+    ws.current.onopen = () => {
+      console.log('WebSocket Connected');
+      setIsConnected(true);
+    };
+
+    ws.current.onclose = () => {
+      console.log('WebSocket Disconnected');
+      setIsConnected(false);
+      
+      // Yeniden bağlanma mantığı
+      reconnectTimeout.current = setTimeout(() => {
+        connectWebSocket();
+      }, 5000);
+    };
+
+    ws.current.onerror = (error) => {
+      console.error('WebSocket Error:', error);
+    };
+
+    ws.current.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      
+      if (data.k) { // Kline verisi
+        const candle = {
+          x: data.k.t, // Kline başlangıç zamanı
+          o: parseFloat(data.k.o), // Open price
+          h: parseFloat(data.k.h), // High price
+          l: parseFloat(data.k.l), // Low price
+          c: parseFloat(data.k.c)  // Close price
+        };
+
+        setChartData(prevData => {
+          const newData = [...prevData];
+          // Eğer bu mum zaten varsa güncelle, yoksa ekle
+          const index = newData.findIndex(item => item.x === candle.x);
+          if (index !== -1) {
+            newData[index] = candle;
+          } else {
+            newData.push(candle);
+            // Son 100 mumu tut
+            if (newData.length > 100) {
+              newData.shift();
+            }
+          }
+          return newData;
+        });
+
+        setLastPrice(parseFloat(data.k.c));
+      }
+    };
+  }, [coin, timeInterval]);
+
+  // WebSocket bağlantısını başlat ve temizle
   useEffect(() => {
-    const fetchData = async () => {
+    // İlk yükleme için geçmiş verileri al
+    const fetchInitialData = async () => {
       try {
         const response = await fetch(
           `https://api.binance.com/api/v3/klines?symbol=${coin}&interval=${timeInterval}&limit=100`
         );
         const data = await response.json();
-        console.log("Raw API data:", data);
-
+        
         const formattedData = data.map((item) => ({
-          x: new Date(item[0]).getTime(),
+          x: item[0],
           o: parseFloat(item[1]),
           h: parseFloat(item[2]),
           l: parseFloat(item[3]),
           c: parseFloat(item[4])
         }));
         
-        console.log("Formatted data:", formattedData);
         setChartData(formattedData);
       } catch (error) {
-        console.error("Error fetching data from Binance API", error);
+        console.error("Error fetching initial data:", error);
       }
     };
 
-    fetchData();
-    
-    let interval;
-    if (timeInterval.includes('s')) {
-      const seconds = parseInt(timeInterval);
-      interval = setInterval(fetchData, seconds * 1000);
-    } else if (timeInterval.includes('m')) {
-      const minutes = parseInt(timeInterval);
-      interval = setInterval(fetchData, minutes * 60 * 1000);
-    } else if (timeInterval.includes('h')) {
-      const hours = parseInt(timeInterval);
-      interval = setInterval(fetchData, hours * 60 * 60 * 1000);
-    } else if (timeInterval.includes('d')) {
-      const days = parseInt(timeInterval);
-      interval = setInterval(fetchData, days * 24 * 60 * 60 * 1000);
-    }
+    fetchInitialData();
+    connectWebSocket();
 
     return () => {
-      if (interval) {
-        clearInterval(interval);
+      if (ws.current) {
+        ws.current.close();
+      }
+      if (reconnectTimeout.current) {
+        clearTimeout(reconnectTimeout.current);
       }
     };
-  }, [timeInterval, coin]); // Added coin to dependencies
+  }, [coin, timeInterval, connectWebSocket]);
 
   // Update chart when chartData changes
   useEffect(() => {
-    if (chartData.length > 0) {
+    if (chartData.length > 0 && chartRef.current) {
       const ctx = chartRef.current.getContext("2d");
       
       if (chartRef.current.chart) {
@@ -300,6 +352,19 @@ export default function Home() {
       <main className="flex-grow p-4">
         <div className="flex gap-4 mb-6">
           <div className="flex-grow bg-gray-800 p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center space-x-2">
+                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                <span className="text-sm text-gray-400">
+                  {isConnected ? 'Connected' : 'Disconnected'}
+                </span>
+              </div>
+              {lastPrice && (
+                <div className="text-white">
+                  Last Price: {lastPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT
+                </div>
+              )}
+            </div>
             <div style={{ height: '500px' }}>
               <canvas ref={chartRef} />
             </div>
