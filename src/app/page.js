@@ -12,6 +12,7 @@ export default function Home() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [timeInterval, setTimeInterval] = useState("1m");
+  
   const [buyConditions, setBuyConditions] = useState({
     rsi: 14,
     sma: 50,
@@ -48,6 +49,7 @@ export default function Home() {
   const ws = useRef(null);
   const [isConnected, setIsConnected] = useState(false);
   const reconnectTimeout = useRef(null);
+  const [showSMA, setShowSMA] = useState(true);
   
   // Available coins list
   const coins = [
@@ -176,41 +178,46 @@ export default function Home() {
     if (chartData.length > 0 && chartRef.current) {
       const ctx = chartRef.current.getContext("2d");
       
-      if (chartRef.current.chart) {
-        chartRef.current.chart.destroy();
+      if (chartInstance.current) {
+        chartInstance.current.destroy();
       }
 
-      let timeUnit = 'minute';
-      if (timeInterval.includes('s')) {
-        timeUnit = 'second';
-      } else if (timeInterval.includes('m')) {
-        timeUnit = 'minute';
-      } else if (timeInterval.includes('h')) {
-        timeUnit = 'hour';
-      } else if (timeInterval.includes('d')) {
-        timeUnit = 'day';
+      const smaData = calculateSMA(chartData, 10); // 10 periyotluk SMA
+
+      const datasets = [
+        {
+          label: `${coin} Price`,
+          data: chartData,
+          color: {
+            up: '#26a69a',
+            down: '#ef5350',
+          },
+          borderColor: {
+            up: '#26a69a',
+            down: '#ef5350',
+          },
+          wickColor: {
+            up: '#26a69a',
+            down: '#ef5350',
+          }
+        }
+      ];
+
+      if (showSMA) {
+        datasets.push({
+          label: 'SMA',
+          data: smaData.map((value, index) => ({ x: chartData[index].x, y: value })),
+          type: 'line',
+          borderColor: 'rgba(75, 192, 192, 0.6)',
+          borderWidth: 2,
+          pointRadius: 0,
+          fill: false,
+        });
       }
 
-      chartRef.current.chart = new Chart(ctx, {
+      chartInstance.current = new Chart(ctx, {
         type: "candlestick",
-        data: {
-          datasets: [{
-            label: `${coin} Price`,
-            data: chartData,
-            color: {
-              up: '#26a69a',
-              down: '#ef5350',
-            },
-            borderColor: {
-              up: '#26a69a',
-              down: '#ef5350',
-            },
-            wickColor: {
-              up: '#26a69a',
-              down: '#ef5350',
-            }
-          }]
-        },
+        data: { datasets },
         options: {
           responsive: true,
           maintainAspectRatio: false,
@@ -219,7 +226,7 @@ export default function Home() {
             x: {
               type: 'time',
               time: {
-                unit: timeUnit,
+                unit: 'minute',
                 displayFormats: {
                   minute: 'HH:mm',
                   hour: 'MM/dd HH:mm',
@@ -308,7 +315,7 @@ export default function Home() {
         }
       });
     }
-  }, [chartData, timeInterval, coin, selectedCoin]);
+  }, [chartData, timeInterval, coin, selectedCoin, lastPrice, showSMA]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -344,6 +351,20 @@ export default function Home() {
     setTradeValues({ usdt: '', btc: '' });
   };
 
+  const calculateSMA = (data, windowSize) => {
+    let sma = [];
+    for (let i = 0; i < data.length; i++) {
+      if (i < windowSize - 1) {
+        sma.push(null); // Yeterli veri yoksa null ekleyin
+      } else {
+        const windowData = data.slice(i - windowSize + 1, i + 1);
+        const average = windowData.reduce((sum, value) => sum + value.c, 0) / windowSize;
+        sma.push(average);
+      }
+    }
+    return sma;
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-900">
   
@@ -368,7 +389,7 @@ export default function Home() {
             <div style={{ height: '500px' }}>
               <canvas ref={chartRef} />
             </div>
-            <div className="mt-4">
+            <div className="mt-4 flex justify-between">
               <div className="flex space-x-2 mt-1">
                 {["1m", "15m", "1h", "4h", "1d"].map((interval) => (
                   <button
@@ -384,6 +405,14 @@ export default function Home() {
                   </button>
                 ))}
               </div>
+              <button
+                onClick={() => setShowSMA(!showSMA)}
+                className={`px-3 py-1 rounded-md ${
+                  showSMA ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                }`}
+              >
+                Toggle SMA
+              </button>
             </div>
           </div>
 
