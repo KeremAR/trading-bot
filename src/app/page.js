@@ -5,10 +5,9 @@ import { CandlestickController, CandlestickElement } from 'chartjs-chart-financi
 import 'chartjs-adapter-date-fns';
 import zoomPlugin from 'chartjs-plugin-zoom';
 
+
 // Register the candlestick controller and element
 Chart.register(CandlestickController, CandlestickElement);
-
-// Register the zoom plugin
 Chart.register(zoomPlugin);
 
 export default function Home() {
@@ -81,12 +80,10 @@ export default function Home() {
     return (parseFloat(btcAmount) * parseFloat(currentPrice)).toFixed(2);
   };
 
-  // Fetch chart data and last price
-  useEffect(() => {
-    const fetchChartData = async () => {
-      try {
-        // Log the start and end times
-        console.log("Fetching data from:", new Date(startTime).toISOString(), "to", new Date(endTime).toISOString());
+  const fetchChartData = async () => {
+    try {
+      // Log the start and end times
+      console.log("Fetching data from:", new Date(startTime).toISOString(), "to", new Date(endTime).toISOString());
 
       const response = await fetch(
         `https://api.binance.com/api/v3/klines?symbol=${coin}&interval=${timeInterval}&startTime=${startTime}&endTime=${endTime}&limit=1000`
@@ -101,26 +98,20 @@ export default function Home() {
         c: parseFloat(item[4])
       }));
 
-        setChartData(formattedData);
+      setChartData(formattedData);
 
-        if (formattedData.length > 0) {
-          setLastPrice(formattedData[formattedData.length - 1].c);
-        }
-      } catch (error) {
-        console.error("Error fetching chart data:", error);
+      if (formattedData.length > 0) {
+        setLastPrice(formattedData[formattedData.length - 1].c);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching chart data:", error);
+    }
+  };
 
-    // Fetch chart data every 5 seconds
-    const intervalId = setInterval(fetchChartData, 5000);
-
-    // Initial fetch
+  // Fetch chart data when startTime or endTime changes
+  useEffect(() => {
     fetchChartData();
-
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, [coin, timeInterval]);
+  }, [startTime, endTime, coin, timeInterval]);
 
   // EMA hesaplama fonksiyonu
   const calculateEMA = (data, windowSize) => {
