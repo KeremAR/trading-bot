@@ -3,9 +3,13 @@ import { useState, useEffect, useRef } from "react";
 import Chart from "chart.js/auto";
 import { CandlestickController, CandlestickElement } from 'chartjs-chart-financial';
 import 'chartjs-adapter-date-fns';
+import zoomPlugin from 'chartjs-plugin-zoom';
 
 // Register the candlestick controller and element
 Chart.register(CandlestickController, CandlestickElement);
+
+// Register the zoom plugin
+Chart.register(zoomPlugin);
 
 export default function Home() {
   const [coin, setCoin] = useState("BTCUSDT");
@@ -232,6 +236,21 @@ export default function Home() {
             }
           },
           plugins: {
+            zoom: {
+              pan: {
+                enabled: true,
+                mode: 'x',
+              },
+              zoom: {
+                wheel: {
+                  enabled: true,
+                },
+                pinch: {
+                  enabled: true
+                },
+                mode: 'x',
+              }
+            },
             tooltip: {
               mode: 'index',
               intersect: false,
