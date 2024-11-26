@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Chart from "chart.js/auto";
 import { CandlestickController, CandlestickElement } from 'chartjs-chart-financial';
 import 'chartjs-adapter-date-fns';
@@ -80,9 +80,9 @@ export default function Home() {
     return (parseFloat(btcAmount) * parseFloat(currentPrice)).toFixed(2);
   };
 
-  const fetchChartData = async () => {
+  // Memoize fetchChartData to prevent unnecessary re-renders
+  const fetchChartData = useCallback(async () => {
     try {
-      // Log the start and end times
       console.log("Fetching data from:", new Date(startTime).toISOString(), "to", new Date(endTime).toISOString());
 
       const response = await fetch(
@@ -106,12 +106,12 @@ export default function Home() {
     } catch (error) {
       console.error("Error fetching chart data:", error);
     }
-  };
+  }, [startTime, endTime, coin, timeInterval]);
 
   // Fetch chart data when startTime or endTime changes
   useEffect(() => {
     fetchChartData();
-  }, [startTime, endTime, coin, timeInterval]);
+  }, [fetchChartData]);
 
   // EMA hesaplama fonksiyonu
   const calculateEMA = (data, windowSize) => {
@@ -126,9 +126,10 @@ export default function Home() {
 
   // Update chart when chartData changes
   useEffect(() => {
+    if (typeof window !== "undefined") {
     if (chartData.length > 0 && chartRef.current) {
       const ctx = chartRef.current.getContext("2d");
-      
+      if (ctx) {
       if (chartInstance.current) {
         chartInstance.current.destroy();
       }
@@ -293,7 +294,9 @@ export default function Home() {
           }
         }
       });
+      }
     }
+  }
   }, [chartData, timeInterval, coin, selectedCoin, lastPrice, showSMA, showEMA]);
 
   const handleSubmit = (e) => {
