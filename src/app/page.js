@@ -49,6 +49,9 @@ export default function Home() {
   const [showSMA, setShowSMA] = useState(true);
   const [showEMA, setShowEMA] = useState(true);
   
+  const [startTime, setStartTime] = useState(Date.now() - (60 * 24 * 60 * 60 * 1000)); // 60 days ago
+  const [endTime, setEndTime] = useState(Date.now()); // Now
+
   // Available coins list
   const coins = [
     { symbol: 'BTC', name: 'Bitcoin' },
@@ -78,22 +81,24 @@ export default function Home() {
   useEffect(() => {
     const fetchChartData = async () => {
       try {
-        const response = await fetch(
-          `https://api.binance.com/api/v3/klines?symbol=${coin}&interval=${timeInterval}&limit=100`
-        );
-        const data = await response.json();
-        
-        const formattedData = data.map((item) => ({
-          x: item[0],
-          o: parseFloat(item[1]),
-          h: parseFloat(item[2]),
-          l: parseFloat(item[3]),
-          c: parseFloat(item[4])
-        }));
-        
+        // Log the start and end times
+        console.log("Fetching data from:", new Date(startTime).toISOString(), "to", new Date(endTime).toISOString());
+
+      const response = await fetch(
+        `https://api.binance.com/api/v3/klines?symbol=${coin}&interval=${timeInterval}&startTime=${startTime}&endTime=${endTime}&limit=1000`
+      );
+      const data = await response.json();
+
+      const formattedData = data.map((item) => ({
+        x: item[0],
+        o: parseFloat(item[1]),
+        h: parseFloat(item[2]),
+        l: parseFloat(item[3]),
+        c: parseFloat(item[4])
+      }));
+
         setChartData(formattedData);
 
-        // Set the last price from the most recent data point
         if (formattedData.length > 0) {
           setLastPrice(formattedData[formattedData.length - 1].c);
         }
@@ -329,6 +334,18 @@ export default function Home() {
     return sma;
   };
 
+  const handlePrevious = () => {
+    const dayInMillis = 24 * 60 * 60 * 1000;
+    setStartTime(startTime - (60 * dayInMillis)); // Move back 60 days
+    setEndTime(endTime - (60 * dayInMillis)); // Move back 60 days
+  };
+
+  const handleNext = () => {
+    const dayInMillis = 24 * 60 * 60 * 1000;
+    setStartTime(startTime + (60 * dayInMillis)); // Move forward 60 days
+    setEndTime(endTime + (60 * dayInMillis)); // Move forward 60 days
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-900">
       <main className="flex-grow py-4">
@@ -336,8 +353,12 @@ export default function Home() {
           <div className="flex-grow bg-gray-800 p-4">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center space-x-2">
-              
-              
+                <button onClick={handlePrevious} className="bg-gray-700 text-white px-3 py-1 rounded-md">
+                  Previous
+                </button>
+                <button onClick={handleNext} className="bg-gray-700 text-white px-3 py-1 rounded-md">
+                  Next
+                </button>
               </div>
               {lastPrice && (
                 <div className="text-white">
