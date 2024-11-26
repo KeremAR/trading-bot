@@ -331,7 +331,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-900">
-      <main className="flex-grow p-4">
+      <main className="flex-grow py-4">
         <div className="flex flex-col lg:flex-row gap-4 mb-6">
           <div className="flex-grow bg-gray-800 p-4">
             <div className="flex items-center justify-between mb-2">
@@ -345,7 +345,7 @@ export default function Home() {
                 </div>
               )}
             </div>
-            <div style={{ height: '500px' }}>
+            <div className="h-[300px] xl:h-[500px]">
               <canvas ref={chartRef} />
             </div>
             <div className="mt-4 grid grid-cols-2 sm:flex sm:space-x-2 gap-2 max-w-md">
