@@ -1,44 +1,76 @@
+import React from 'react';
 
-export default function LiveTest({
-  buyConditions,
-  setBuyConditions,
-  sellConditions,
-  setSellConditions,
-  tradingTimeInterval,
-  setTradingTimeInterval,
-  selectedTradingCoin,
-  setSelectedTradingCoin,
-  tradingCoins,
-  handleSubmit,
-  className
-}) {
+const LiveTest = ({
+  selectedCoin,
+  timeFrames,
+  selectedTimeFrame,
+  setSelectedTimeFrame,
+  buyIndicators,
+  sellIndicators,
+  toggleBuyIndicator,
+  toggleSellIndicator,
+  updateBuyIndicatorValue,
+  updateSellIndicatorValue,
+  onRunLivetest,
+  className,
+  setSelectedCoin,
+  coins,
+}) => {
+
+  const renderIndicatorInput = (key, indicator, updateValue) => {
+    if (key === 'macd') {
+      return (
+        <div className="ml-6 mt-2 space-y-2 flex">
+          <input
+            type="number"
+            value={indicator.values[0]}
+            onChange={(e) => updateValue(key, 0, e.target.value)}
+            className="w-16 p-1 bg-gray-700 text-white rounded-md mr-2"
+            placeholder="Fast"
+          />
+          <input
+            type="number"
+            value={indicator.values[1]}
+            onChange={(e) => updateValue(key, 1, e.target.value)}
+            className="w-16 p-1 bg-gray-700 text-white rounded-md mr-2"
+            placeholder="Slow"
+          />
+          <input
+            type="number"
+            value={indicator.values[2]}
+            onChange={(e) => updateValue(key, 2, e.target.value)}
+            className="w-16 p-1 bg-gray-700 text-white rounded-md"
+            placeholder="Signal"
+          />
+        </div>
+      );
+    }
+
+    return (
+      <input
+        type="number"
+        value={indicator.value}
+        onChange={(e) => updateValue(key, null, e.target.value)}
+        className="ml-6 mt-2 w-24 p-1 bg-gray-700 text-white rounded-md"
+        placeholder="Period"
+      />
+    );
+  };
+
   return (
     <div className={`bg-gray-800 p-6 rounded-lg flex flex-col flex-grow ${className}`}>
-      <div className="mb-4">
-        <label className="block text-sm font-medium mb-2 text-green-300">Trading Time Interval:</label>
+      <h3 className="text-lg font-semibold mb-4 text-white">LiveTest Configuration</h3>
+      
+      {/* Coin Selection */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium mb-2 text-green-300">Select Coin:</label>
         <div className="grid grid-cols-3 gap-2">
-          {["1m", "15m", "1h", "4h", "1d"].map((interval) => (
-            <button
-              key={interval}
-              onClick={() => setTradingTimeInterval(interval)}
-              className={`px-2 py-1 rounded-md text-sm ${
-                tradingTimeInterval === interval
-                  ? "bg-green-600 text-white"
-                  : "bg-gray-700 text-green-400 hover:bg-gray-600"
-              }`}
-            >
-              {interval}
-            </button>
-          ))}
-        </div>
-        <label className="block text-sm font-medium mt-4 mb-2 text-green-300">Select Coin:</label>
-        <div className="grid grid-cols-3 gap-2">
-          {tradingCoins.map((coin) => (
+          {coins.map((coin) => (
             <button
               key={coin.symbol}
-              onClick={() => setSelectedTradingCoin(coin.symbol)}
+              onClick={() => setSelectedCoin(coin.symbol)}
               className={`px-2 py-1 rounded-md text-sm ${
-                selectedTradingCoin === coin.symbol
+                selectedCoin === coin.symbol
                   ? "bg-green-600 text-white"
                   : "bg-gray-700 text-green-400 hover:bg-gray-600"
               }`}
@@ -49,124 +81,89 @@ export default function LiveTest({
         </div>
       </div>
 
-      <div className="w-full lg:w-full bg-gray-800 p-6 rounded-lg">
-        <div className="flex space-x-8">
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold mb-4 text-green-400">Buy Conditions</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1 text-green-300">RSI:</label>
-                <input
-                  type="number"
-                  value={buyConditions.rsi}
-                  onChange={(e) => setBuyConditions({ ...buyConditions, rsi: e.target.value })}
-                  className="w-full p-2 bg-gray-700 text-green-400 placeholder-gray-500 rounded-md 
-                           border-2 border-green-800 focus:border-green-500 focus:ring-1 focus:ring-green-500 
-                           transition-colors"
-                  placeholder="Enter RSI value"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-green-300">SMA:</label>
-                <input
-                  type="number"
-                  value={buyConditions.sma}
-                  onChange={(e) => setBuyConditions({ ...buyConditions, sma: e.target.value })}
-                  className="w-full p-2 bg-gray-700 text-green-400 placeholder-gray-500 rounded-md 
-                           border-2 border-green-800 focus:border-green-500 focus:ring-1 focus:ring-green-500 
-                           transition-colors"
-                  placeholder="Enter SMA value"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-green-300">EMA:</label>
-                <input
-                  type="number"
-                  value={buyConditions.ema}
-                  onChange={(e) => setBuyConditions({ ...buyConditions, ema: e.target.value })}
-                  className="w-full p-2 bg-gray-700 text-green-400 placeholder-gray-500 rounded-md 
-                           border-2 border-green-800 focus:border-green-500 focus:ring-1 focus:ring-green-500 
-                           transition-colors"
-                  placeholder="Enter EMA value"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-green-300">MACD:</label>
-                <input
-                  type="text"
-                  value={buyConditions.macd.join(', ')}
-                  onChange={(e) => setBuyConditions({ ...buyConditions, macd: e.target.value.split(',').map(Number) })}
-                  className="w-full p-2 bg-gray-700 text-green-400 placeholder-gray-500 rounded-md 
-                           border-2 border-green-800 focus:border-green-500 focus:ring-1 focus:ring-green-500 
-                           transition-colors"
-                  placeholder="Enter MACD values (comma-separated)"
-                />
-              </div>
-            </div>
-          </div>
+      
 
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold mb-4 text-red-400">Sell Conditions</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1 text-red-300">RSI:</label>
-                <input
-                  type="number"
-                  value={sellConditions.rsi}
-                  onChange={(e) => setSellConditions({ ...sellConditions, rsi: e.target.value })}
-                  className="w-full p-2 bg-gray-700 text-red-400 placeholder-gray-500 rounded-md 
-                           border-2 border-red-800 focus:border-red-500 focus:ring-1 focus:ring-red-500 
-                           transition-colors"
-                  placeholder="Enter RSI value"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-red-300">SMA:</label>
-                <input
-                  type="number"
-                  value={sellConditions.sma}
-                  onChange={(e) => setSellConditions({ ...sellConditions, sma: e.target.value })}
-                  className="w-full p-2 bg-gray-700 text-red-400 placeholder-gray-500 rounded-md 
-                           border-2 border-red-800 focus:border-red-500 focus:ring-1 focus:ring-red-500 
-                           transition-colors"
-                  placeholder="Enter SMA value"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-red-300">EMA:</label>
-                <input
-                  type="number"
-                  value={sellConditions.ema}
-                  onChange={(e) => setSellConditions({ ...sellConditions, ema: e.target.value })}
-                  className="w-full p-2 bg-gray-700 text-red-400 placeholder-gray-500 rounded-md 
-                           border-2 border-red-800 focus:border-red-500 focus:ring-1 focus:ring-red-500 
-                           transition-colors"
-                  placeholder="Enter EMA value"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-red-300">MACD:</label>
-                <input
-                  type="text"
-                  value={sellConditions.macd.join(', ')}
-                  onChange={(e) => setSellConditions({ ...sellConditions, macd: e.target.value.split(',').map(Number) })}
-                  className="w-full p-2 bg-gray-700 text-red-400 placeholder-gray-500 rounded-md 
-                           border-2 border-red-800 focus:border-red-500 focus:ring-1 focus:ring-red-500 
-                           transition-colors"
-                  placeholder="Enter MACD values (comma-separated)"
-                />
-              </div>
-            </div>
-          </div>
+      {/* Time Frames */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium mb-2 text-green-300">Time Frame:</label>
+        <div className="grid grid-cols-3 gap-2">
+          {timeFrames.map((frame) => (
+            <button
+              key={frame}
+              onClick={() => setSelectedTimeFrame(frame)}
+              className={`px-2 py-1 rounded-md text-sm ${
+                selectedTimeFrame === frame
+                  ? "bg-green-600 text-white"
+                  : "bg-gray-700 text-green-400 hover:bg-gray-600"
+              }`}
+            >
+              {frame}
+            </button>
+          ))}
         </div>
-        <button
-          onClick={handleSubmit}
-          className="w-full mt-6 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 
-                   transition-colors font-medium shadow-lg hover:shadow-xl"
-        >
-          Simulate
-        </button>
       </div>
+<div className='flex'>
+      {/* Buy Indicators */}
+      <div className="flex-1 mb-6 overflow-hidden min-h-0">
+        <label className="block text-sm font-medium mb-2 text-green-300">Buy Indicators:</label>
+        <div className="h-[200px] overflow-y-auto pr-2 space-y-4 scrollbar-thin  scrollbar-thumb-gray-300
+                      scrollbar-track-transparent">
+          {Object.entries(buyIndicators).map(([key, indicator]) => (
+            <div key={`buy-${key}`} className="flex flex-col">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id={`buy-${key}`}
+                  checked={indicator.active}
+                  onChange={() => toggleBuyIndicator(key)}
+                  className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                />
+                <label htmlFor={`buy-${key}`} className="ml-2 text-sm text-white">
+                  {indicator.name}
+                </label>
+              </div>
+              {indicator.active && renderIndicatorInput(key, indicator, updateBuyIndicatorValue)}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Sell Indicators */}
+      <div className="flex-1 mb-6 overflow-hidden min-h-0">
+        <label className="block text-sm font-medium mb-2 text-red-300">Sell Indicators:</label>
+        <div className="h-[200px] overflow-y-auto pr-2 space-y-4 scrollbar-thin  scrollbar-thumb-gray-300
+                      scrollbar-track-transparent">
+          {Object.entries(sellIndicators).map(([key, indicator]) => (
+            <div key={`sell-${key}`} className="flex flex-col">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id={`sell-${key}`}
+                  checked={indicator.active}
+                  onChange={() => toggleSellIndicator(key)}
+                  className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                />
+                <label htmlFor={`sell-${key}`} className="ml-2 text-sm text-white">
+                  {indicator.name}
+                </label>
+              </div>
+              {indicator.active && renderIndicatorInput(key, indicator, updateSellIndicatorValue)}
+            </div>
+          ))}
+        </div>
+      </div>
+      </div>
+
+      {/* Run Livetest Button */}
+      <button
+        onClick={onRunLivetest}
+        className="w-full py-2 bg-green-600 text-white rounded-md hover:bg-green-700 
+                 transition-colors font-medium shadow-lg hover:shadow-xl mt-auto"
+      >
+        Run Livetest
+      </button>
     </div>
   );
-} 
+};
+
+export default LiveTest; 

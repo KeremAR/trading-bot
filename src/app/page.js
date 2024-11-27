@@ -226,11 +226,89 @@ const tradingCoins = [
       .filter(([_, value]) => value.active)
       .map(([key, value]) => `${value.name}: ${value.value}`);
 
-    setResults({
-      message: `Running backtest for ${selectedCoin} on ${selectedTimeFrame} timeframe\n` +
-               `Period: Last ${backTestPeriod} days\n` +
-               `Active Indicators: ${activeIndicators.join(', ')}`
-    });
+      setResults(prevResults => ({
+        message: (prevResults?.message || '') + 
+                `\n[${new Date().toLocaleTimeString()}] Running backtest for ${selectedCoin} on ${selectedTimeFrame} timeframe\n` +
+                `Period: Last ${backTestPeriod} days\n` +
+                `Active Indicators: ${activeIndicators.join(', ')}\n`
+      }));
+    setShowBotLogs(true);
+  };
+
+  // Add these new states for LiveTest
+  const [liveBuyIndicators, setLiveBuyIndicators] = useState({
+    rsi: { name: 'RSI', active: false, value: 30 },
+    macd: { name: 'MACD', active: false, values: [12, 26, 9] },
+    sma: { name: 'SMA', active: false, value: 50 },
+    ema: { name: 'EMA', active: false, value: 20 },
+    bollinger: { name: 'Bollinger Bands', active: false, value: 20 }
+  });
+
+  const [liveSellIndicators, setLiveSellIndicators] = useState({
+    rsi: { name: 'RSI', active: false, value: 70 },
+    macd: { name: 'MACD', active: false, values: [12, 26, 9] },
+    sma: { name: 'SMA', active: false, value: 200 },
+    ema: { name: 'EMA', active: false, value: 50 },
+    bollinger: { name: 'Bollinger Bands', active: false, value: 20 }
+  });
+
+  const toggleLiveBuyIndicator = (indicatorKey) => {
+    setLiveBuyIndicators(prev => ({
+      ...prev,
+      [indicatorKey]: {
+        ...prev[indicatorKey],
+        active: !prev[indicatorKey].active
+      }
+    }));
+  };
+
+  const toggleLiveSellIndicator = (indicatorKey) => {
+    setLiveSellIndicators(prev => ({
+      ...prev,
+      [indicatorKey]: {
+        ...prev[indicatorKey],
+        active: !prev[indicatorKey].active
+      }
+    }));
+  };
+
+  const updateLiveBuyIndicatorValue = (key, valueIndex, newValue) => {
+    setLiveBuyIndicators(prev => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        ...(valueIndex !== null
+          ? { values: prev[key].values.map((v, i) => i === valueIndex ? Number(newValue) : v) }
+          : { value: Number(newValue) }
+        )
+      }
+    }));
+  };
+
+  const updateLiveSellIndicatorValue = (key, valueIndex, newValue) => {
+    setLiveSellIndicators(prev => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        ...(valueIndex !== null
+          ? { values: prev[key].values.map((v, i) => i === valueIndex ? Number(newValue) : v) }
+          : { value: Number(newValue) }
+        )
+      }
+    }));
+  };
+
+  const handleRunLivetest = () => {
+    const activeIndicators = Object.entries(liveBuyIndicators)
+      .filter(([_, value]) => value.active)
+      .map(([key, value]) => `${value.name}: ${value.value}`);
+      
+
+      setResults(prevResults => ({
+        message: (prevResults?.message || '') + 
+             `\n[${new Date().toLocaleTimeString()}] Running livetest for ${selectedCoin} on ${selectedTimeFrame} timeframe\n` +
+               `Active Indicators: ${activeIndicators.join(', ')}\n`
+              }));
     setShowBotLogs(true);
   };
 
@@ -270,21 +348,23 @@ const tradingCoins = [
           />
         </div>
         
-      
         <div className="flex flex-col lg:flex-row gap-4  w-full">
-          <LiveTest
-className="flex-1 flex-shrink-0"         
- buyConditions={buyConditions}
-            setBuyConditions={setBuyConditions}
-            sellConditions={sellConditions}
-            setSellConditions={setSellConditions}
-            tradingTimeInterval={tradingTimeInterval}
-            setTradingTimeInterval={setTradingTimeInterval}
-            selectedTradingCoin={selectedTradingCoin}
-            setSelectedTradingCoin={setSelectedTradingCoin}
-            tradingCoins={tradingCoins}
-            handleSubmit={handleSubmit}
-          />
+        <LiveTest
+          className="flex-1 flex-shrink-0"
+          selectedCoin={selectedCoin}
+          setSelectedCoin={setSelectedCoin}
+          coins={coins}
+          timeFrames={timeFrames}
+          selectedTimeFrame={selectedTimeFrame}
+          setSelectedTimeFrame={setSelectedTimeFrame}
+          buyIndicators={liveBuyIndicators}
+          sellIndicators={liveSellIndicators}
+          toggleBuyIndicator={toggleLiveBuyIndicator}
+          toggleSellIndicator={toggleLiveSellIndicator}
+          updateBuyIndicatorValue={updateLiveBuyIndicatorValue}
+          updateSellIndicatorValue={updateLiveSellIndicatorValue}
+          onRunLivetest={handleRunLivetest}
+        />
 
           
             <BacktestPanel
