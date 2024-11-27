@@ -10,33 +10,23 @@ export default function Home() {
   const [coin, setCoin] = useState("BTCUSDT");
   const [timeInterval, setTimeInterval] = useState("1m"); 
   
-  const [buyConditions, setBuyConditions] = useState({
-    rsi: 14,
-    sma: 50,
-    ema: 20,
-    macd: [12, 26, 9],
-  });
-  const [sellConditions, setSellConditions] = useState({
-    rsi: 70,
-    sma: 200,
-    ema: 50,
-    macd: [12, 26, 9],
-  });
+ 
   const [results, setResults] = useState(null);
   const [balance, setBalance] = useState({
     usdt: 10000,
-    btc: 0
+    btc: 0,
+    eth: 0,
+    avax: 0,
+    sol: 0,
+    fet: 0,
+    render: 0
   });
   const [activePanel, setActivePanel] = useState('buy');
   const [tradeValues, setTradeValues] = useState({
     usdt: '',
     btc: ''
   });
-  const [price, setPrice] = useState('');
-  const [calculatedAmount, setCalculatedAmount] = useState({
-    btc: 0,
-    usdt: 0
-  });
+
   const [selectedCoin, setSelectedCoin] = useState('BTC');
   const [lastPrice, setLastPrice] = useState(null);
   const [showBotLogs, setShowBotLogs] = useState(true);
@@ -52,10 +42,9 @@ export default function Home() {
   ];
 
  
-  const [selectedChartCoin, setSelectedChartCoin] = useState('BTC');
   const [backTestCoin, setBackTestCoin] = useState('BTC');
   const [liveTestCoin, setLiveTestCoin] = useState('BTC');
-  
+
   const [backTestTimeFrame, setBackTestTimeFrame] = useState('1h');
   const [liveTestTimeFrame, setLiveTestTimeFrame] = useState('1h');
   
@@ -131,9 +120,7 @@ export default function Home() {
     setTradeValues({ usdt: '', btc: '' });
   };
 
-  // Add new state variables for buy and sell time intervals
-  const [tradingTimeInterval, setTradingTimeInterval] = useState('15m');
- 
+
 
   const handleBuySubmission = () => {
     // Implement buy submission logic
@@ -328,7 +315,7 @@ export default function Home() {
 
     setResults(prevResults => ({
       message: (prevResults?.message || '') + 
-        `\n[${new Date().toLocaleTimeString()}] Running livetest for ${selectedCoin} on ${liveTestTimeFrame} timeframe\n` +
+        `\n[${new Date().toLocaleTimeString()}] Running livetest for ${liveTestCoin} on ${liveTestTimeFrame} timeframe\n` +
         `Buy Indicators: ${activeBuyIndicators.join(', ') || 'None'}\n` +
         `Sell Indicators: ${activeSellIndicators.join(', ') || 'None'}\n` 
     }));
@@ -374,8 +361,8 @@ export default function Home() {
         <div className="flex flex-col lg:flex-row gap-4 w-full">
         <LiveTest
           className="flex-1 flex-shrink-0"
-          selectedCoin={selectedCoin}
-          setSelectedCoin={setSelectedCoin}
+          selectedCoin={liveTestCoin}
+          setSelectedCoin={setLiveTestCoin}
           coins={coins}
           timeFrames={timeFrames}
           selectedTimeFrame={liveTestTimeFrame}
