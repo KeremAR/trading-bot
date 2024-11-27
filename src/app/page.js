@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import BotLogs from "@/components/BotSimulator/BotLogs";
-import ConditionsPanel from "@/components/BotSimulator/ConditionsPanel";
+import ConditionsPanel from "@/components/BotSimulator/LiveTest";
 import TradingViewChart from '@/components/TradingViewChart';
 import TradingPanel from '@/components/TradingPanel';
 import BacktestPanel from '@/components/BotSimulator/BacktestPanel';

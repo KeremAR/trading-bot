@@ -1,4 +1,5 @@
-export default function ConditionsPanel({
+
+export default function LiveTest({
   buyConditions,
   setBuyConditions,
   sellConditions,
