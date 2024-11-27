@@ -4,6 +4,7 @@ import BotLogs from "@/components/BotSimulator/BotLogs";
 import ConditionsPanel from "@/components/BotSimulator/ConditionsPanel";
 import TradingViewChart from '@/components/TradingViewChart';
 import TradingPanel from '@/components/TradingPanel';
+import BacktestPanel from '@/components/BotSimulator/BacktestPanel';
 
 export default function Home() {
   const [coin, setCoin] = useState("BTCUSDT");
@@ -38,7 +39,7 @@ export default function Home() {
   });
   const [selectedCoin, setSelectedCoin] = useState('BTC');
   const [lastPrice, setLastPrice] = useState(null);
-  const [showBotLogs, setShowBotLogs] = useState(false);
+  const [showBotLogs, setShowBotLogs] = useState(true);
   
   // Available coins list
   const coins = [
@@ -152,6 +153,57 @@ const tradingCoins = [
     // Implement sell submission logic
   };
 
+  // Add these new states after your existing useState declarations
+  const [selectedTimeFrame, setSelectedTimeFrame] = useState('1h');
+  const [backTestPeriod, setBackTestPeriod] = useState('30');
+  const [indicators, setIndicators] = useState({
+    rsi: { name: 'RSI', active: true, value: 14 },
+    sma: { name: 'SMA', active: true, value: 50 },
+    ema: { name: 'EMA', active: true, value: 20 },
+    macd: { name: 'MACD', active: true, values: [12, 26, 9] },
+    bollinger: { name: 'Bollinger Bands', active: true, value: 20 },
+    supertrend: { name: 'SuperTrend', active: true, value: 14 }
+  });
+
+  const timeFrames = ['1m', '15m', '1h', '4h', '1d'];
+
+  const toggleIndicator = (indicatorKey) => {
+    setIndicators(prev => ({
+      ...prev,
+      [indicatorKey]: {
+        ...prev[indicatorKey],
+        active: !prev[indicatorKey].active
+      }
+    }));
+  };
+
+  const handleRunBacktest = () => {
+    // This will be implemented later with backend integration
+    const activeIndicators = Object.entries(indicators)
+      .filter(([_, value]) => value.active)
+      .map(([key, value]) => `${value.name}: ${value.value}`);
+
+    setResults({
+      message: `Running backtest for ${selectedCoin} on ${selectedTimeFrame} timeframe\n` +
+               `Period: Last ${backTestPeriod} days\n` +
+               `Active Indicators: ${activeIndicators.join(', ')}`
+    });
+    setShowBotLogs(true);
+  };
+
+  const updateIndicatorValue = (indicatorKey, valueIndex, newValue) => {
+    setIndicators(prev => ({
+      ...prev,
+      [indicatorKey]: {
+        ...prev[indicatorKey],
+        ...(valueIndex !== null
+          ? { values: prev[indicatorKey].values.map((v, i) => i === valueIndex ? Number(newValue) : v) }
+          : { value: Number(newValue) }
+        )
+      }
+    }));
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-900">
       <main className="flex-grow py-4">
@@ -189,8 +241,9 @@ const tradingCoins = [
         </div>
         
       
-        <div className="flex flex-col lg:flex-row gap-4">
+        <div className="flex flex-col lg:flex-row gap-4 w-full">
           <ConditionsPanel
+            className="flex-1 flex-shrink-0"
             buyConditions={buyConditions}
             setBuyConditions={setBuyConditions}
             sellConditions={sellConditions}
@@ -203,8 +256,25 @@ const tradingCoins = [
             handleSubmit={handleSubmit}
           />
 
+          <BacktestPanel
+            className="flex-1 flex-shrink-0"
+            selectedCoin={selectedCoin}
+            setSelectedCoin={setSelectedCoin}
+            coins={coins}
+            timeFrames={timeFrames}
+            selectedTimeFrame={selectedTimeFrame}
+            setSelectedTimeFrame={setSelectedTimeFrame}
+            indicators={indicators}
+            toggleIndicator={toggleIndicator}
+            backTestPeriod={backTestPeriod}
+            setBackTestPeriod={setBackTestPeriod}
+            onRunBacktest={handleRunBacktest}
+            updateIndicatorValue={updateIndicatorValue}
+          />
+
           {showBotLogs && (
             <BotLogs 
+              className="flex-1 flex-shrink-0"
               results={results}
               selectedTradingCoin={selectedTradingCoin}
               tradingTimeInterval={tradingTimeInterval}

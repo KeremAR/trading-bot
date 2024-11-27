@@ -1,6 +1,12 @@
-export default function BotLogs({ results, selectedTradingCoin, tradingTimeInterval, setResults }) {
+export default function BotLogs({ 
+  className, 
+  results, 
+  selectedTradingCoin, 
+  tradingTimeInterval, 
+  setResults 
+}) {
   return (
-    <div className="w-full lg:w-1/2 bg-gray-800 p-6">
+    <div className={`bg-gray-800 p-6 rounded-lg flex flex-col flex-grow ${className}`}>
       <h3 className="text-lg font-semibold mb-4">Bot Logs</h3>
       <div className="h-5/6 bg-gray-700 rounded-md p-4 overflow-y-auto">
         <div className="text-gray-300">

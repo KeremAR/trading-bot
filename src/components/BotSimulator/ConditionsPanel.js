@@ -8,10 +8,11 @@ export default function ConditionsPanel({
   selectedTradingCoin,
   setSelectedTradingCoin,
   tradingCoins,
-  handleSubmit
+  handleSubmit,
+  className
 }) {
   return (
-    <div className="flex-col w-1/2">
+    <div className={`bg-gray-800 p-6 rounded-lg flex flex-col flex-grow ${className}`}>
       <div className="mb-4">
         <label className="block text-sm font-medium mb-2 text-green-300">Trading Time Interval:</label>
         <div className="grid grid-cols-3 gap-2">
