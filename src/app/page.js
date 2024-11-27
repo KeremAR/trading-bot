@@ -3,11 +3,10 @@ import { useState, useEffect, useRef } from "react";
 import BotLogs from "@/components/BotSimulator/BotLogs";
 import ConditionsPanel from "@/components/BotSimulator/ConditionsPanel";
 import TradingViewChart from '@/components/TradingViewChart';
+import TradingPanel from '@/components/TradingPanel';
 
 export default function Home() {
   const [coin, setCoin] = useState("BTCUSDT");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
   const [timeInterval, setTimeInterval] = useState("1m"); 
   
   const [buyConditions, setBuyConditions] = useState({
@@ -39,8 +38,6 @@ export default function Home() {
   });
   const [selectedCoin, setSelectedCoin] = useState('BTC');
   const [lastPrice, setLastPrice] = useState(null);
-  const [showSMA, setShowSMA] = useState(true);
-  const [showEMA, setShowEMA] = useState(true);
   const [showBotLogs, setShowBotLogs] = useState(false);
   
   // Available coins list
@@ -71,15 +68,7 @@ const tradingCoins = [
     setCoin(`${selectedCoin}USDT`);
   }, [selectedCoin]);
 
-  const calculateBtcAmount = (usdtAmount, currentPrice) => {
-    if (!usdtAmount || !currentPrice) return 0;
-    return (parseFloat(usdtAmount) / parseFloat(currentPrice)).toFixed(8);
-  };
 
-  const calculateUsdtAmount = (btcAmount, currentPrice) => {
-    if (!btcAmount || !currentPrice) return 0;
-    return (parseFloat(btcAmount) * parseFloat(currentPrice)).toFixed(2);
-  };
 
   // Fetch chart data and last price
   useEffect(() => {
@@ -115,16 +104,7 @@ const tradingCoins = [
     };
   }, [coin, timeInterval]);
 
-  // EMA hesaplama fonksiyonu
-  const calculateEMA = (data, windowSize) => {
-    const k = 2 / (windowSize + 1);
-    let emaArray = [data[0].c]; // İlk değer başlangıç için kullanılır
-    for (let i = 1; i < data.length; i++) {
-      const ema = data[i].c * k + emaArray[i - 1] * (1 - k);
-      emaArray.push(ema);
-    }
-    return emaArray;
-  };
+  
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -160,23 +140,17 @@ const tradingCoins = [
     setTradeValues({ usdt: '', btc: '' });
   };
 
-  const calculateSMA = (data, windowSize) => {
-    let sma = [];
-    for (let i = 0; i < data.length; i++) {
-      if (i < windowSize - 1) {
-        sma.push(null); // Yeterli veri yoksa null ekleyin
-      } else {
-        const windowData = data.slice(i - windowSize + 1, i + 1);
-        const average = windowData.reduce((sum, value) => sum + value.c, 0) / windowSize;
-        sma.push(average);
-      }
-    }
-    return sma;
-  };
-
   // Add new state variables for buy and sell time intervals
   const [tradingTimeInterval, setTradingTimeInterval] = useState('15m');
  
+
+  const handleBuySubmission = () => {
+    // Implement buy submission logic
+  };
+
+  const handleSellSubmission = () => {
+    // Implement sell submission logic
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-900">
@@ -199,117 +173,19 @@ const tradingCoins = [
             </div>
           </div>
 
-          <div className="w-full lg:w-80 bg-gray-800 p-4">
-            <div className="flex items-center space-x-2">
-              <div className="flex-grow mb-4">
-                <label className="block text-sm mb-1">Select Coin</label>
-                <select
-                  value={selectedCoin}
-                  onChange={handleCoinChange}
-                  className="w-full p-2 bg-gray-600 rounded-md text-white border-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {coins.map((coin) => (
-                    <option key={coin.symbol} value={coin.symbol}>
-                      {coin.symbol} - {coin.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="flex gap-2 mb-4">
-              <button
-                onClick={() => setActivePanel(activePanel === 'buy' ? null : 'buy')}
-                className={`flex-1 py-2 rounded-md transition-colors ${
-                  activePanel === 'buy' 
-                    ? 'bg-green-600 text-white' 
-                    : 'bg-gray-700 text-green-400 hover:bg-gray-600'
-                }`}
-              >
-                Buy
-              </button>
-              <button
-                onClick={() => setActivePanel(activePanel === 'sell' ? null : 'sell')}
-                className={`flex-1 py-2 rounded-md transition-colors ${
-                  activePanel === 'sell' 
-                    ? 'bg-red-600 text-white' 
-                    : 'bg-gray-700 text-red-400 hover:bg-gray-600'
-                }`}
-              >
-                Sell
-              </button>
-            </div>
-
-            {activePanel === 'buy' && (
-              <div className="space-y-4 p-4 bg-gray-700 rounded-lg">
-                <div>
-                  <label className="block text-sm mb-1">
-                    USDT Amount (Available: {balance.usdt.toFixed(2)} USDT)
-                  </label>
-                  <input
-                    type="number"
-                    value={tradeValues.usdt}
-                    onChange={(e) => handleUsdtChange(e.target.value)}
-                    className="w-full p-2 bg-gray-600 rounded-md text-white"
-                    placeholder="Enter USDT amount"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">
-                    {selectedCoin} Amount
-                  </label>
-                  <input
-                    type="number"
-                    value={tradeValues.btc}
-                    onChange={(e) => handleBtcChange(e.target.value)}
-                    className="w-full p-2 bg-gray-600 rounded-md text-white"
-                    placeholder={`Enter ${selectedCoin} amount`}
-                  />
-                </div>
-                <button
-                  className="w-full py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-                  onClick={() => {/* handle buy submission */}}
-                >
-                  Submit Buy Order
-                </button>
-              </div>
-            )}
-
-            {activePanel === 'sell' && (
-              <div className="space-y-4 p-4 bg-gray-700 rounded-lg">
-                <div>
-                  <label className="block text-sm mb-1">
-                    USDT Amount (Available: {balance.usdt.toFixed(2)} USDT)
-                  </label>
-                  <input
-                    type="number"
-                    value={tradeValues.usdt}
-                    onChange={(e) => handleUsdtChange(e.target.value)}
-                    className="w-full p-2 bg-gray-600 rounded-md text-white"
-                    placeholder="Enter USDT amount"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">
-                    {selectedCoin} Amount (Available: {balance[selectedCoin.toLowerCase()]?.toFixed(8) || '0.00'} {selectedCoin})
-                  </label>
-                  <input
-                    type="number"
-                    value={tradeValues.btc}
-                    onChange={(e) => handleBtcChange(e.target.value)}
-                    className="w-full p-2 bg-gray-600 rounded-md text-white"
-                    placeholder={`Enter ${selectedCoin} amount`}
-                  />
-                </div>
-                <button
-                  className="w-full py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-                  onClick={() => {/* handle sell submission */}}
-                >
-                  Submit Sell Order
-                </button>
-              </div>
-            )}
-          </div>
+          <TradingPanel
+            selectedCoin={selectedCoin}
+            handleCoinChange={handleCoinChange}
+            coins={coins}
+            activePanel={activePanel}
+            setActivePanel={setActivePanel}
+            balance={balance}
+            tradeValues={tradeValues}
+            handleUsdtChange={handleUsdtChange}
+            handleBtcChange={handleBtcChange}
+            handleBuySubmission={handleBuySubmission}
+            handleSellSubmission={handleSellSubmission}
+          />
         </div>
         
       
