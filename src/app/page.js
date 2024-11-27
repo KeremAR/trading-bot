@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import BotLogs from "@/components/BotSimulator/BotLogs";
-import ConditionsPanel from "@/components/BotSimulator/LiveTest";
+import LiveTest from "@/components/BotSimulator/LiveTest";
 import TradingViewChart from '@/components/TradingViewChart';
 import TradingPanel from '@/components/TradingPanel';
 import BacktestPanel from '@/components/BotSimulator/BacktestPanel';
@@ -156,19 +156,24 @@ const tradingCoins = [
   // Add these new states after your existing useState declarations
   const [selectedTimeFrame, setSelectedTimeFrame] = useState('1h');
   const [backTestPeriod, setBackTestPeriod] = useState('30');
-  const [indicators, setIndicators] = useState({
-    rsi: { name: 'RSI', active: true, value: 14 },
-    sma: { name: 'SMA', active: true, value: 50 },
-    ema: { name: 'EMA', active: true, value: 20 },
-    macd: { name: 'MACD', active: true, values: [12, 26, 9] },
-    bollinger: { name: 'Bollinger Bands', active: true, value: 20 },
-    supertrend: { name: 'SuperTrend', active: true, value: 14 }
+  const [buyIndicators, setBuyIndicators] = useState({
+    rsi: { name: 'RSI', active: false, value: 30 },
+    macd: { name: 'MACD', active: false, values: [12, 26, 9] },
+    sma: { name: 'SMA', active: false, value: 50 },
+    ema: { name: 'EMA', active: false, value: 20 },
+    bollinger: { name: 'Bollinger Bands', active: false, value: 20 }
   });
 
-  const timeFrames = ['1m', '15m', '1h', '4h', '1d'];
+  const [sellIndicators, setSellIndicators] = useState({
+    rsi: { name: 'RSI', active: false, value: 70 },
+    macd: { name: 'MACD', active: false, values: [12, 26, 9] },
+    sma: { name: 'SMA', active: false, value: 200 },
+    ema: { name: 'EMA', active: false, value: 50 },
+    bollinger: { name: 'Bollinger Bands', active: false, value: 20 }
+  });
 
-  const toggleIndicator = (indicatorKey) => {
-    setIndicators(prev => ({
+  const toggleBuyIndicator = (indicatorKey) => {
+    setBuyIndicators(prev => ({
       ...prev,
       [indicatorKey]: {
         ...prev[indicatorKey],
@@ -177,9 +182,47 @@ const tradingCoins = [
     }));
   };
 
+  const toggleSellIndicator = (indicatorKey) => {
+    setSellIndicators(prev => ({
+      ...prev,
+      [indicatorKey]: {
+        ...prev[indicatorKey],
+        active: !prev[indicatorKey].active
+      }
+    }));
+  };
+
+  const updateBuyIndicatorValue = (key, valueIndex, newValue) => {
+    setBuyIndicators(prev => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        ...(valueIndex !== null
+          ? { values: prev[key].values.map((v, i) => i === valueIndex ? Number(newValue) : v) }
+          : { value: Number(newValue) }
+        )
+      }
+    }));
+  };
+
+  const updateSellIndicatorValue = (key, valueIndex, newValue) => {
+    setSellIndicators(prev => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        ...(valueIndex !== null
+          ? { values: prev[key].values.map((v, i) => i === valueIndex ? Number(newValue) : v) }
+          : { value: Number(newValue) }
+        )
+      }
+    }));
+  };
+
+  const timeFrames = ['1m', '15m', '1h', '4h', '1d'];
+
   const handleRunBacktest = () => {
     // This will be implemented later with backend integration
-    const activeIndicators = Object.entries(indicators)
+    const activeIndicators = Object.entries(buyIndicators)
       .filter(([_, value]) => value.active)
       .map(([key, value]) => `${value.name}: ${value.value}`);
 
@@ -189,19 +232,6 @@ const tradingCoins = [
                `Active Indicators: ${activeIndicators.join(', ')}`
     });
     setShowBotLogs(true);
-  };
-
-  const updateIndicatorValue = (indicatorKey, valueIndex, newValue) => {
-    setIndicators(prev => ({
-      ...prev,
-      [indicatorKey]: {
-        ...prev[indicatorKey],
-        ...(valueIndex !== null
-          ? { values: prev[indicatorKey].values.map((v, i) => i === valueIndex ? Number(newValue) : v) }
-          : { value: Number(newValue) }
-        )
-      }
-    }));
   };
 
   return (
@@ -241,10 +271,10 @@ const tradingCoins = [
         </div>
         
       
-        <div className="flex flex-col lg:flex-row gap-4 w-full">
-          <ConditionsPanel
-            className="flex-1 flex-shrink-0"
-            buyConditions={buyConditions}
+        <div className="flex flex-col lg:flex-row gap-4  w-full">
+          <LiveTest
+className="flex-1 flex-shrink-0"         
+ buyConditions={buyConditions}
             setBuyConditions={setBuyConditions}
             sellConditions={sellConditions}
             setSellConditions={setSellConditions}
@@ -256,31 +286,35 @@ const tradingCoins = [
             handleSubmit={handleSubmit}
           />
 
-          <BacktestPanel
-            className="flex-1 flex-shrink-0"
-            selectedCoin={selectedCoin}
-            setSelectedCoin={setSelectedCoin}
-            coins={coins}
-            timeFrames={timeFrames}
-            selectedTimeFrame={selectedTimeFrame}
-            setSelectedTimeFrame={setSelectedTimeFrame}
-            indicators={indicators}
-            toggleIndicator={toggleIndicator}
-            backTestPeriod={backTestPeriod}
-            setBackTestPeriod={setBackTestPeriod}
-            onRunBacktest={handleRunBacktest}
-            updateIndicatorValue={updateIndicatorValue}
-          />
-
-          {showBotLogs && (
-            <BotLogs 
-              className="flex-1 flex-shrink-0"
-              results={results}
-              selectedTradingCoin={selectedTradingCoin}
-              tradingTimeInterval={tradingTimeInterval}
-              setResults={setResults}
+          
+            <BacktestPanel
+className="flex-1 flex-shrink-0"             selectedCoin={selectedCoin}
+              setSelectedCoin={setSelectedCoin}
+              coins={coins}
+              timeFrames={timeFrames}
+              selectedTimeFrame={selectedTimeFrame}
+              setSelectedTimeFrame={setSelectedTimeFrame}
+              buyIndicators={buyIndicators}
+              sellIndicators={sellIndicators}
+              toggleBuyIndicator={toggleBuyIndicator}
+              toggleSellIndicator={toggleSellIndicator}
+              updateBuyIndicatorValue={updateBuyIndicatorValue}
+              updateSellIndicatorValue={updateSellIndicatorValue}
+              backTestPeriod={backTestPeriod}
+              setBackTestPeriod={setBackTestPeriod}
+              onRunBacktest={handleRunBacktest}
             />
-          )}
+
+            {showBotLogs && (
+              <BotLogs 
+              className="flex-1 flex-shrink-0"  
+                results={results}
+                selectedTradingCoin={selectedTradingCoin}
+                tradingTimeInterval={tradingTimeInterval}
+                setResults={setResults}
+              />
+            )}
+          
         </div>
 
        

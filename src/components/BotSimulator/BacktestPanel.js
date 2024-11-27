@@ -5,39 +5,42 @@ const BacktestPanel = ({
   timeFrames,
   selectedTimeFrame,
   setSelectedTimeFrame,
-  indicators,
-  toggleIndicator,
+  buyIndicators,
+  sellIndicators,
+  toggleBuyIndicator,
+  toggleSellIndicator,
+  updateBuyIndicatorValue,
+  updateSellIndicatorValue,
   backTestPeriod,
   setBackTestPeriod,
   onRunBacktest,
-  updateIndicatorValue,
   className,
   setSelectedCoin,
-  coins
+  coins,
 }) => {
 
-  const renderIndicatorInput = (key, indicator) => {
+  const renderIndicatorInput = (key, indicator, updateValue) => {
     if (key === 'macd') {
       return (
         <div className="ml-6 mt-2 space-y-2 flex">
           <input
             type="number"
             value={indicator.values[0]}
-            onChange={(e) => updateIndicatorValue(key, 0, e.target.value)}
+            onChange={(e) => updateValue(key, 0, e.target.value)}
             className="w-16 p-1 bg-gray-700 text-white rounded-md mr-2"
             placeholder="Fast"
           />
           <input
             type="number"
             value={indicator.values[1]}
-            onChange={(e) => updateIndicatorValue(key, 1, e.target.value)}
+            onChange={(e) => updateValue(key, 1, e.target.value)}
             className="w-16 p-1 bg-gray-700 text-white rounded-md mr-2"
             placeholder="Slow"
           />
           <input
             type="number"
             value={indicator.values[2]}
-            onChange={(e) => updateIndicatorValue(key, 2, e.target.value)}
+            onChange={(e) => updateValue(key, 2, e.target.value)}
             className="w-16 p-1 bg-gray-700 text-white rounded-md"
             placeholder="Signal"
           />
@@ -49,7 +52,7 @@ const BacktestPanel = ({
       <input
         type="number"
         value={indicator.value}
-        onChange={(e) => updateIndicatorValue(key, null, e.target.value)}
+        onChange={(e) => updateValue(key, null, e.target.value)}
         className="ml-6 mt-2 w-24 p-1 bg-gray-700 text-white rounded-md"
         placeholder="Period"
       />
@@ -114,29 +117,54 @@ const BacktestPanel = ({
           ))}
         </div>
       </div>
-
-      {/* Indicators Toggle */}
+<div className='flex'>
+      {/* Buy Indicators */}
       <div className="flex-1 mb-6 overflow-hidden min-h-0">
-        <label className="block text-sm font-medium mb-2 text-green-300">Active Indicators:</label>
-        <div className="h-[300px] overflow-y-auto pr-2 space-y-4">
-          {Object.entries(indicators).map(([key, indicator]) => (
-            <div key={key} className="flex flex-col">
+        <label className="block text-sm font-medium mb-2 text-green-300">Buy Indicators:</label>
+        <div className="h-[200px] overflow-y-auto pr-2 space-y-4">
+          {Object.entries(buyIndicators).map(([key, indicator]) => (
+            <div key={`buy-${key}`} className="flex flex-col">
               <div className="flex items-center">
                 <input
                   type="checkbox"
-                  id={key}
+                  id={`buy-${key}`}
                   checked={indicator.active}
-                  onChange={() => toggleIndicator(key)}
+                  onChange={() => toggleBuyIndicator(key)}
                   className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
                 />
-                <label htmlFor={key} className="ml-2 text-sm text-white">
+                <label htmlFor={`buy-${key}`} className="ml-2 text-sm text-white">
                   {indicator.name}
                 </label>
               </div>
-              {indicator.active && renderIndicatorInput(key, indicator)}
+              {indicator.active && renderIndicatorInput(key, indicator, updateBuyIndicatorValue)}
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Sell Indicators */}
+      <div className="flex-1 mb-6 overflow-hidden min-h-0">
+        <label className="block text-sm font-medium mb-2 text-red-300">Sell Indicators:</label>
+        <div className="h-[200px] overflow-y-auto pr-2 space-y-4">
+          {Object.entries(sellIndicators).map(([key, indicator]) => (
+            <div key={`sell-${key}`} className="flex flex-col">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id={`sell-${key}`}
+                  checked={indicator.active}
+                  onChange={() => toggleSellIndicator(key)}
+                  className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                />
+                <label htmlFor={`sell-${key}`} className="ml-2 text-sm text-white">
+                  {indicator.name}
+                </label>
+              </div>
+              {indicator.active && renderIndicatorInput(key, indicator, updateSellIndicatorValue)}
+            </div>
+          ))}
+        </div>
+      </div>
       </div>
 
       {/* Run Backtest Button */}
