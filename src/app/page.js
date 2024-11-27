@@ -1,20 +1,18 @@
 "use client";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import Chart from "chart.js/auto";
 import { CandlestickController, CandlestickElement } from 'chartjs-chart-financial';
 import 'chartjs-adapter-date-fns';
-import zoomPlugin from 'chartjs-plugin-zoom';
 
 
 // Register the candlestick controller and element
 Chart.register(CandlestickController, CandlestickElement);
-Chart.register(zoomPlugin);
 
 export default function Home() {
   const [coin, setCoin] = useState("BTCUSDT");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [timeInterval, setTimeInterval] = useState("1m");
+  const [timeInterval, setTimeInterval] = useState("1m"); 
   
   const [buyConditions, setBuyConditions] = useState({
     rsi: 14,
@@ -51,10 +49,8 @@ export default function Home() {
   const [lastPrice, setLastPrice] = useState(null);
   const [showSMA, setShowSMA] = useState(true);
   const [showEMA, setShowEMA] = useState(true);
+  const [showBotLogs, setShowBotLogs] = useState(false);
   
-  const [startTime, setStartTime] = useState(Date.now() - (60 * 24 * 60 * 60 * 1000)); // 60 days ago
-  const [endTime, setEndTime] = useState(Date.now()); // Now
-
   // Available coins list
   const coins = [
     { symbol: 'BTC', name: 'Bitcoin' },
@@ -64,6 +60,19 @@ export default function Home() {
     { symbol: 'FET', name: 'Fet' },
     { symbol: 'RENDER', name: 'Render' },
   ];
+
+ 
+const [selectedTradingCoin, setSelectedTradingCoin] = useState('BTC');
+
+// Define a separate list of coins for this selection
+const tradingCoins = [
+  { symbol: 'BTC', name: 'Bitcoin' },
+  { symbol: 'ETH', name: 'Ethereum' },
+  { symbol: 'AVAX', name: 'Avax' },
+  { symbol: 'SOL', name: 'Solana' },
+  { symbol: 'FET', name: 'Fet' },
+  { symbol: 'RENDER', name: 'Render' },
+];
 
   // Update coin pair when selectedCoin changes
   useEffect(() => {
@@ -80,38 +89,44 @@ export default function Home() {
     return (parseFloat(btcAmount) * parseFloat(currentPrice)).toFixed(2);
   };
 
-  // Memoize fetchChartData to prevent unnecessary re-renders
-  const fetchChartData = useCallback(async () => {
-    try {
-      console.log("Fetching data from:", new Date(startTime).toISOString(), "to", new Date(endTime).toISOString());
-
-      const response = await fetch(
-        `https://api.binance.com/api/v3/klines?symbol=${coin}&interval=${timeInterval}&startTime=${startTime}&endTime=${endTime}&limit=1000`
-      );
-      const data = await response.json();
-
-      const formattedData = data.map((item) => ({
-        x: item[0],
-        o: parseFloat(item[1]),
-        h: parseFloat(item[2]),
-        l: parseFloat(item[3]),
-        c: parseFloat(item[4])
-      }));
-
-      setChartData(formattedData);
-
-      if (formattedData.length > 0) {
-        setLastPrice(formattedData[formattedData.length - 1].c);
-      }
-    } catch (error) {
-      console.error("Error fetching chart data:", error);
-    }
-  }, [startTime, endTime, coin, timeInterval]);
-
-  // Fetch chart data when startTime or endTime changes
+  // Fetch chart data and last price
   useEffect(() => {
+    const fetchChartData = async () => {
+      try {
+        const response = await fetch(
+          `https://api.binance.com/api/v3/klines?symbol=${coin}&interval=${timeInterval}&limit=70`
+        );
+        const data = await response.json();
+        
+        const formattedData = data.map((item) => ({
+          x: item[0],
+          o: parseFloat(item[1]),
+          h: parseFloat(item[2]),
+          l: parseFloat(item[3]),
+          c: parseFloat(item[4])
+        }));
+        
+        setChartData(formattedData);
+
+        // Set the last price from the most recent data point
+        if (formattedData.length > 0) {
+          setLastPrice(formattedData[formattedData.length - 1].c);
+        }
+      } catch (error) {
+        console.error("Error fetching chart data:", error);
+      }
+    };
+
+    // Fetch chart data every 5 seconds
+    const intervalId = setInterval(fetchChartData, 5000);
+
+    // Initial fetch
     fetchChartData();
-  }, [fetchChartData]);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [coin, timeInterval]);
 
   // EMA hesaplama fonksiyonu
   const calculateEMA = (data, windowSize) => {
@@ -126,10 +141,9 @@ export default function Home() {
 
   // Update chart when chartData changes
   useEffect(() => {
-    if (typeof window !== "undefined") {
     if (chartData.length > 0 && chartRef.current) {
       const ctx = chartRef.current.getContext("2d");
-      if (ctx) {
+      
       if (chartInstance.current) {
         chartInstance.current.destroy();
       }
@@ -228,21 +242,6 @@ export default function Home() {
             }
           },
           plugins: {
-            zoom: {
-              pan: {
-                enabled: true,
-                mode: 'x',
-              },
-              zoom: {
-                wheel: {
-                  enabled: true,
-                },
-                pinch: {
-                  enabled: true
-                },
-                mode: 'x',
-              }
-            },
             tooltip: {
               mode: 'index',
               intersect: false,
@@ -294,17 +293,16 @@ export default function Home() {
           }
         }
       });
-      }
     }
-  }
   }, [chartData, timeInterval, coin, selectedCoin, lastPrice, showSMA, showEMA]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const simulatedResults = {
-      message: `Simulated results for ${coin} from ${startDate} to ${endDate} with time interval ${timeInterval}, buy conditions RSI: ${buyConditions.rsi}, SMA: ${buyConditions.sma}, EMA: ${buyConditions.ema}, MACD: ${buyConditions.macd.join(', ')} and sell conditions RSI: ${sellConditions.rsi}, SMA: ${sellConditions.sma}, EMA: ${sellConditions.ema}, MACD: ${sellConditions.macd.join(', ')}`,
+      message: `Simulated results for ${selectedTradingCoin}/USDT with time interval ${tradingTimeInterval}, buy conditions RSI: ${buyConditions.rsi}, SMA: ${buyConditions.sma}, EMA: ${buyConditions.ema}, MACD: ${buyConditions.macd.join(', ')} and sell conditions RSI: ${sellConditions.rsi}, SMA: ${sellConditions.sma}, EMA: ${sellConditions.ema}, MACD: ${sellConditions.macd.join(', ')}`,
     };
     setResults(simulatedResults);
+    setShowBotLogs(true);
   };
 
   // Update calculations when amounts change
@@ -347,17 +345,9 @@ export default function Home() {
     return sma;
   };
 
-  const handlePrevious = () => {
-    const dayInMillis = 24 * 60 * 60 * 1000;
-    setStartTime(startTime - (60 * dayInMillis)); // Move back 60 days
-    setEndTime(endTime - (60 * dayInMillis)); // Move back 60 days
-  };
-
-  const handleNext = () => {
-    const dayInMillis = 24 * 60 * 60 * 1000;
-    setStartTime(startTime + (60 * dayInMillis)); // Move forward 60 days
-    setEndTime(endTime + (60 * dayInMillis)); // Move forward 60 days
-  };
+  // Add new state variables for buy and sell time intervals
+  const [tradingTimeInterval, setTradingTimeInterval] = useState('15m');
+ 
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-900">
@@ -366,12 +356,8 @@ export default function Home() {
           <div className="flex-grow bg-gray-800 p-4">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center space-x-2">
-                <button onClick={handlePrevious} className="bg-gray-700 text-white px-3 py-1 rounded-md">
-                  Previous
-                </button>
-                <button onClick={handleNext} className="bg-gray-700 text-white px-3 py-1 rounded-md">
-                  Next
-                </button>
+              
+              
               </div>
               {lastPrice && (
                 <div className="text-white">
@@ -529,12 +515,55 @@ export default function Home() {
             )}
           </div>
         </div>
-
+        
+      
         <div className="flex flex-col lg:flex-row gap-4">
-          <div className="w-full lg:w-1/2 bg-gray-800 p-6 rounded-lg">
+          <div className="flex-col w-1/2">
+
+            {/* Add time interval selection for buyy sell conditions */}
+            <div className="mb-4">
+  <label className="block text-sm font-medium mb-2 text-green-300">Trading Time Interval:</label>
+  <div className="grid grid-cols-3 gap-2">
+    {["1m", "15m", "1h", "4h", "1d"].map((interval) => (
+      <button
+        key={interval}
+        onClick={() => setTradingTimeInterval(interval)}
+        className={`px-2 py-1 rounded-md text-sm ${
+          tradingTimeInterval === interval
+            ? "bg-green-600 text-white"
+            : "bg-gray-700 text-green-400 hover:bg-gray-600"
+        }`}
+      >
+        {interval}
+      </button>
+    ))}
+  </div>
+  <label className="block text-sm font-medium mt-4 mb-2 text-green-300">Select Coin:</label>
+  <div className="grid grid-cols-3 gap-2">
+    {tradingCoins.map((coin) => (
+      <button
+        key={coin.symbol}
+        onClick={() => setSelectedTradingCoin(coin.symbol)}
+        className={`px-2 py-1 rounded-md text-sm ${
+          selectedTradingCoin === coin.symbol
+            ? "bg-green-600 text-white"
+            : "bg-gray-700 text-green-400 hover:bg-gray-600"
+        }`}
+      >
+        {coin.symbol}
+      </button>
+    ))}
+  </div>
+</div>
+                {/*buy sell conditions*/ }
+          <div className="w-full lg:w-full bg-gray-800 p-6 rounded-lg">
+          
             <div className="flex space-x-8">
               <div className="flex-1">
                 <h3 className="text-lg font-semibold mb-4 text-green-400">Buy Conditions</h3>
+                
+              
+
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium mb-1 text-green-300">RSI:</label>
@@ -589,6 +618,9 @@ export default function Home() {
 
               <div className="flex-1">
                 <h3 className="text-lg font-semibold mb-4 text-red-400">Sell Conditions</h3>
+                
+              
+
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium mb-1 text-red-300">RSI:</label>
@@ -649,24 +681,44 @@ export default function Home() {
               Simulate
             </button>
           </div>
-
-          <div className="w-full lg:w-1/2 bg-gray-800 p-6">
-            <h3 className="text-lg font-semibold mb-4">Bot Logs</h3>
-            <div className="h-[300px] bg-gray-700 rounded-md p-4 overflow-y-auto">
-              <div className="text-gray-300">
-                <p className="mb-1">Bot started...</p>
-                <p className="mb-1">Monitoring market conditions...</p>
-              </div>
-            </div>
           </div>
-        </div>
 
-        {results && (
-          <div className="mt-6 p-4 bg-gray-100 rounded-md">
-            <h3 className="text-lg font-semibold">Results:</h3>
-            <p>{results.message}</p>
+          {showBotLogs && (
+            <div className="w-full lg:w-1/2 bg-gray-800 p-6">
+              <h3 className="text-lg font-semibold mb-4">Bot Logs</h3>
+              <div className="h-5/6 bg-gray-700 rounded-md p-4 overflow-y-auto">
+                <div className="text-gray-300">
+                  <p className="mb-1">Bot started...</p>
+                  <p className="mb-1">Monitoring market conditions...</p>
+                  
+                  {results && (
+          <div className="">
+            {results.message.split('\n').map((msg, index) => (
+              <p key={index} className="mb-1">{msg}</p>
+            ))}
+            
           </div>
         )}
+                </div>
+              </div>
+              <button
+      onClick={() => {
+        setResults({
+          message: `${results?.message}\n Simulation stopped for ${selectedTradingCoin}/USDT with time interval ${tradingTimeInterval}`
+        });
+        //setShowBotLogs(false);
+      }}
+      className="w-full mt-4 bg-red-600 text-white py-2 px-4 rounded-md 
+                 hover:bg-red-700 transition-colors font-medium 
+                 shadow-lg hover:shadow-xl"
+    >
+      Stop Simulation
+    </button>
+            </div>
+          )}
+        </div>
+
+       
       </main>
     </div>
   );
