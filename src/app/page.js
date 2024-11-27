@@ -1,14 +1,8 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import Chart from "chart.js/auto";
-import { CandlestickController, CandlestickElement } from 'chartjs-chart-financial';
-import 'chartjs-adapter-date-fns';
 import BotLogs from "@/components/BotSimulator/BotLogs";
 import ConditionsPanel from "@/components/BotSimulator/ConditionsPanel";
-
-
-// Register the candlestick controller and element
-Chart.register(CandlestickController, CandlestickElement);
+import TradingViewChart from '@/components/TradingViewChart';
 
 export default function Home() {
   const [coin, setCoin] = useState("BTCUSDT");
@@ -29,9 +23,6 @@ export default function Home() {
     macd: [12, 26, 9],
   });
   const [results, setResults] = useState(null);
-  const chartRef = useRef(null);
-  const chartInstance = useRef(null);
-  const [chartData, setChartData] = useState([]);
   const [balance, setBalance] = useState({
     usdt: 10000,
     btc: 0
@@ -46,7 +37,6 @@ export default function Home() {
     btc: 0,
     usdt: 0
   });
-  const [currentPrice, setCurrentPrice] = useState(45000); // Example price
   const [selectedCoin, setSelectedCoin] = useState('BTC');
   const [lastPrice, setLastPrice] = useState(null);
   const [showSMA, setShowSMA] = useState(true);
@@ -108,12 +98,7 @@ const tradingCoins = [
           c: parseFloat(item[4])
         }));
         
-        setChartData(formattedData);
-
-        // Set the last price from the most recent data point
-        if (formattedData.length > 0) {
-          setLastPrice(formattedData[formattedData.length - 1].c);
-        }
+        setLastPrice(formattedData[formattedData.length - 1].c);
       } catch (error) {
         console.error("Error fetching chart data:", error);
       }
@@ -141,163 +126,6 @@ const tradingCoins = [
     return emaArray;
   };
 
-  // Update chart when chartData changes
-  useEffect(() => {
-    if (chartData.length > 0 && chartRef.current) {
-      const ctx = chartRef.current.getContext("2d");
-      
-      if (chartInstance.current) {
-        chartInstance.current.destroy();
-      }
-
-      const smaData = calculateSMA(chartData, 10); // 10 periyotluk SMA
-      const emaData = calculateEMA(chartData, 10); // 10 periyotluk EMA
-
-      const datasets = [
-        {
-          label: `${coin} Price`,
-          data: chartData,
-          color: {
-            up: '#26a69a',
-            down: '#ef5350',
-          },
-          borderColor: {
-            up: '#26a69a',
-            down: '#ef5350',
-          },
-          wickColor: {
-            up: '#26a69a',
-            down: '#ef5350',
-          }
-        }
-      ];
-
-      if (showSMA) {
-        datasets.push({
-          label: 'SMA',
-          data: smaData.map((value, index) => ({ x: chartData[index].x, y: value })),
-          type: 'line',
-          borderColor: 'rgba(75, 192, 192, 0.6)',
-          borderWidth: 2,
-          pointRadius: 0,
-          fill: false,
-        });
-      }
-
-      if (showEMA) {
-        datasets.push({
-          label: 'EMA',
-          data: emaData.map((value, index) => ({ x: chartData[index].x, y: value })),
-          type: 'line',
-          borderColor: 'rgba(255, 159, 64, 0.6)',
-          borderWidth: 2,
-          pointRadius: 0,
-          fill: false,
-        });
-      }
-
-      chartInstance.current = new Chart(ctx, {
-        type: "candlestick",
-        data: { datasets },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          animation: false, // Animasyonları kapat
-          scales: {
-            x: {
-              type: 'time',
-              time: {
-                unit: 'minute',
-                displayFormats: {
-                  minute: 'HH:mm',
-                  hour: 'MM/dd HH:mm',
-                  day: 'MM/dd'
-                }
-              },
-              grid: {
-                color: 'rgba(255, 255, 255, 0.1)',
-                drawBorder: false
-              },
-              ticks: {
-                maxRotation: 0,
-                autoSkip: true,
-                maxTicksLimit: 12,
-                color: '#999'
-              }
-            },
-            y: {
-              type: 'linear',
-              position: 'right',
-              grid: {
-                color: 'rgba(255, 255, 255, 0.1)',
-                drawBorder: false
-              },
-              ticks: {
-                color: '#999',
-                callback: function(value) {
-                  return value.toLocaleString('en-US', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                  });
-                }
-              }
-            }
-          },
-          plugins: {
-            tooltip: {
-              mode: 'index',
-              intersect: false,
-              callbacks: {
-                label: function(context) {
-                  const point = context.raw;
-                  return [
-                    `Open: ${parseFloat(point.o).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
-                    `High: ${parseFloat(point.h).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
-                    `Low: ${parseFloat(point.l).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
-                    `Close: ${parseFloat(point.c).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
-                  ];
-                }
-              },
-              backgroundColor: 'rgba(0, 0, 0, 0.8)',
-              titleColor: '#fff',
-              bodyColor: '#fff',
-              borderColor: 'rgba(255, 255, 255, 0.2)',
-              borderWidth: 1
-            },
-            legend: {
-              display: false
-            },
-            title: {
-              display: true,
-              text: `${selectedCoin}/USDT Price Chart (${timeInterval})`,
-              color: '#fff',
-              font: {
-                size: 16,
-                weight: 'normal'
-              },
-              padding: {
-                top: 20,
-                bottom: 20
-              }
-            }
-          },
-          layout: {
-            padding: {
-              left: 10,
-              right: 20,
-              top: 0,
-              bottom: 0
-            }
-          },
-          interaction: {
-            mode: 'index',
-            intersect: false
-          }
-        }
-      });
-    }
-  }, [chartData, timeInterval, coin, selectedCoin, lastPrice, showSMA, showEMA]);
-
   const handleSubmit = (e) => {
     e.preventDefault();
     const simulatedResults = {
@@ -306,14 +134,13 @@ const tradingCoins = [
     setResults(simulatedResults);
     setShowBotLogs(true);
   };
-
   // Update calculations when amounts change
   const handleUsdtChange = (value) => {
     if (!value) {
       setTradeValues({ usdt: value, btc: '' });
       return;
     }
-    const coinAmount = (parseFloat(value) / parseFloat(chartData[chartData.length - 1]?.c || 0)).toFixed(8);
+    const coinAmount = (parseFloat(value) / parseFloat(lastPrice || 0)).toFixed(8);
     setTradeValues({ usdt: value, btc: coinAmount });
   };
 
@@ -322,7 +149,7 @@ const tradingCoins = [
       setTradeValues({ btc: value, usdt: '' });
       return;
     }
-    const usdtAmount = (parseFloat(value) * parseFloat(chartData[chartData.length - 1]?.c || 0)).toFixed(2);
+    const usdtAmount = (parseFloat(value) * parseFloat(lastPrice || 0)).toFixed(2);
     setTradeValues({ btc: value, usdt: usdtAmount });
   };
 
@@ -367,41 +194,8 @@ const tradingCoins = [
                 </div>
               )}
             </div>
-            <div className="h-[300px] xl:h-[500px]">
-              <canvas ref={chartRef} />
-            </div>
-            <div className="mt-4 grid grid-cols-2 sm:flex sm:space-x-2 gap-2 max-w-md">
-              {["1m", "15m", "1h", "4h", "1d"].map((interval) => (
-                <button
-                  key={interval}
-                  onClick={() => setTimeInterval(interval)}
-                  className={`w-full px-3 py-1 rounded-md ${
-                    timeInterval === interval
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                  }`}
-                >
-                  {interval}
-                </button>
-              ))}
-            </div>
-            <div className="mt-4 grid grid-cols-2 sm:flex sm:space-x-2 gap-2">
-              <button
-                onClick={() => setShowSMA(!showSMA)}
-                className={`w-full sm:w-24 px-3 py-1 rounded-md ${
-                  showSMA ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                }`}
-              >
-                Toggle SMA
-              </button>
-              <button
-                onClick={() => setShowEMA(!showEMA)}
-                className={`w-full sm:w-24 px-3 py-1 rounded-md ${
-                  showEMA ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                }`}
-              >
-                Toggle EMA
-              </button>
+            <div className="h-[500px]">
+              <TradingViewChart symbol={`${selectedCoin}USDT`} />
             </div>
           </div>
 
