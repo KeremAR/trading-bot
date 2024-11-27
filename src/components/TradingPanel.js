@@ -17,6 +17,13 @@ const TradingPanel = ({
     <div className="w-full lg:w-80 bg-gray-800 p-4">
       <div className="flex items-center space-x-2">
         <div className="flex-grow mb-4">
+        <div className="mb-4">
+    <h3 className="text-white text-lg font-semibold mb-2">Your Balance</h3>
+    <div className="grid grid-cols-2 gap-2">
+      <div className="text-gray-300">USDT: {balance.usdt.toFixed(2)}</div>
+      <div className="text-gray-300">{selectedCoin}: {balance[selectedCoin.toLowerCase()] || 0}</div>
+          </div>
+        </div>
           <label className="block text-sm mb-1">Select Coin</label>
           <select
             value={selectedCoin}

@@ -52,17 +52,15 @@ export default function Home() {
   ];
 
  
-const [selectedTradingCoin, setSelectedTradingCoin] = useState('BTC');
+  const [selectedChartCoin, setSelectedChartCoin] = useState('BTC');
+  const [backTestCoin, setBackTestCoin] = useState('BTC');
+  const [liveTestCoin, setLiveTestCoin] = useState('BTC');
+  
+  const [backTestTimeFrame, setBackTestTimeFrame] = useState('1h');
+  const [liveTestTimeFrame, setLiveTestTimeFrame] = useState('1h');
+  
 
-// Define a separate list of coins for this selection
-const tradingCoins = [
-  { symbol: 'BTC', name: 'Bitcoin' },
-  { symbol: 'ETH', name: 'Ethereum' },
-  { symbol: 'AVAX', name: 'Avax' },
-  { symbol: 'SOL', name: 'Solana' },
-  { symbol: 'FET', name: 'Fet' },
-  { symbol: 'RENDER', name: 'Render' },
-];
+
 
   // Update coin pair when selectedCoin changes
   useEffect(() => {
@@ -107,14 +105,6 @@ const tradingCoins = [
 
   
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const simulatedResults = {
-      message: `Simulated results for ${selectedTradingCoin}/USDT with time interval ${tradingTimeInterval}, buy conditions RSI: ${buyConditions.rsi}, SMA: ${buyConditions.sma}, EMA: ${buyConditions.ema}, MACD: ${buyConditions.macd.join(', ')} and sell conditions RSI: ${sellConditions.rsi}, SMA: ${sellConditions.sma}, EMA: ${sellConditions.ema}, MACD: ${sellConditions.macd.join(', ')}`,
-    };
-    setResults(simulatedResults);
-    setShowBotLogs(true);
-  };
   // Update calculations when amounts change
   const handleUsdtChange = (value) => {
     if (!value) {
@@ -221,17 +211,34 @@ const tradingCoins = [
   const timeFrames = ['1m', '15m', '1h', '4h', '1d'];
 
   const handleRunBacktest = () => {
-    // This will be implemented later with backend integration
-    const activeIndicators = Object.entries(buyIndicators)
+    const activeBuyIndicators = Object.entries(buyIndicators)
       .filter(([_, value]) => value.active)
-      .map(([key, value]) => `${value.name}: ${value.value}`);
+      .map(([key, value]) => {
+        if (key === 'macd') {
+          return `${value.name}: [${value.values.join(', ')}]`;
+        }
+        return `${value.name}: ${value.value}`;
+      });
 
-      setResults(prevResults => ({
-        message: (prevResults?.message || '') + 
-                `\n[${new Date().toLocaleTimeString()}] Running backtest for ${selectedCoin} on ${selectedTimeFrame} timeframe\n` +
-                `Period: Last ${backTestPeriod} days\n` +
-                `Active Indicators: ${activeIndicators.join(', ')}\n`
-      }));
+    const activeSellIndicators = Object.entries(sellIndicators)
+      .filter(([_, value]) => value.active)
+      .map(([key, value]) => {
+        if (key === 'macd') {
+          return `${value.name}: [${value.values.join(', ')}]`;
+        }
+        return `${value.name}: ${value.value}`;
+      });
+
+ 
+
+    setResults(prevResults => ({
+      message: (prevResults?.message || '') + 
+        `\n[${new Date().toLocaleTimeString()}] Running backtest for ${backTestCoin} on ${backTestTimeFrame} timeframe\n` +
+        `Period: Last ${backTestPeriod} days\n` +
+        `Buy Indicators: ${activeBuyIndicators.join(', ') || 'None'}\n` +
+        `Sell Indicators: ${activeSellIndicators.join(', ') || 'None'}\n` 
+       
+    }));
     setShowBotLogs(true);
   };
 
@@ -299,16 +306,32 @@ const tradingCoins = [
   };
 
   const handleRunLivetest = () => {
-    const activeIndicators = Object.entries(liveBuyIndicators)
+    const activeBuyIndicators = Object.entries(liveBuyIndicators)
       .filter(([_, value]) => value.active)
-      .map(([key, value]) => `${value.name}: ${value.value}`);
-      
+      .map(([key, value]) => {
+        if (key === 'macd') {
+          return `${value.name}: [${value.values.join(', ')}]`;
+        }
+        return `${value.name}: ${value.value}`;
+      });
 
-      setResults(prevResults => ({
-        message: (prevResults?.message || '') + 
-             `\n[${new Date().toLocaleTimeString()}] Running livetest for ${selectedCoin} on ${selectedTimeFrame} timeframe\n` +
-               `Active Indicators: ${activeIndicators.join(', ')}\n`
-              }));
+    const activeSellIndicators = Object.entries(liveSellIndicators)
+      .filter(([_, value]) => value.active)
+      .map(([key, value]) => {
+        if (key === 'macd') {
+          return `${value.name}: [${value.values.join(', ')}]`;
+        }
+        return `${value.name}: ${value.value}`;
+      });
+
+    
+
+    setResults(prevResults => ({
+      message: (prevResults?.message || '') + 
+        `\n[${new Date().toLocaleTimeString()}] Running livetest for ${selectedCoin} on ${liveTestTimeFrame} timeframe\n` +
+        `Buy Indicators: ${activeBuyIndicators.join(', ') || 'None'}\n` +
+        `Sell Indicators: ${activeSellIndicators.join(', ') || 'None'}\n` 
+    }));
     setShowBotLogs(true);
   };
 
@@ -348,15 +371,15 @@ const tradingCoins = [
           />
         </div>
         
-        <div className="flex flex-col lg:flex-row gap-4  w-full">
+        <div className="flex flex-col lg:flex-row gap-4 w-full">
         <LiveTest
           className="flex-1 flex-shrink-0"
           selectedCoin={selectedCoin}
           setSelectedCoin={setSelectedCoin}
           coins={coins}
           timeFrames={timeFrames}
-          selectedTimeFrame={selectedTimeFrame}
-          setSelectedTimeFrame={setSelectedTimeFrame}
+          selectedTimeFrame={liveTestTimeFrame}
+          setSelectedTimeFrame={setLiveTestTimeFrame}
           buyIndicators={liveBuyIndicators}
           sellIndicators={liveSellIndicators}
           toggleBuyIndicator={toggleLiveBuyIndicator}
@@ -366,34 +389,35 @@ const tradingCoins = [
           onRunLivetest={handleRunLivetest}
         />
 
-          
-            <BacktestPanel
-className="flex-1 flex-shrink-0"             selectedCoin={selectedCoin}
-              setSelectedCoin={setSelectedCoin}
-              coins={coins}
-              timeFrames={timeFrames}
-              selectedTimeFrame={selectedTimeFrame}
-              setSelectedTimeFrame={setSelectedTimeFrame}
-              buyIndicators={buyIndicators}
-              sellIndicators={sellIndicators}
-              toggleBuyIndicator={toggleBuyIndicator}
-              toggleSellIndicator={toggleSellIndicator}
-              updateBuyIndicatorValue={updateBuyIndicatorValue}
-              updateSellIndicatorValue={updateSellIndicatorValue}
-              backTestPeriod={backTestPeriod}
-              setBackTestPeriod={setBackTestPeriod}
-              onRunBacktest={handleRunBacktest}
-            />
+        <BacktestPanel
+          className="flex-1 flex-shrink-0"
+          selectedCoin={backTestCoin}
+          setSelectedCoin={setBackTestCoin}
+          coins={coins}
+          timeFrames={timeFrames}
+          selectedTimeFrame={backTestTimeFrame}
+          setSelectedTimeFrame={setBackTestTimeFrame}
+          buyIndicators={buyIndicators}
+          sellIndicators={sellIndicators}
+          toggleBuyIndicator={toggleBuyIndicator}
+          toggleSellIndicator={toggleSellIndicator}
+          updateBuyIndicatorValue={updateBuyIndicatorValue}
+          updateSellIndicatorValue={updateSellIndicatorValue}
+          backTestPeriod={backTestPeriod}
+          setBackTestPeriod={setBackTestPeriod}
+          onRunBacktest={handleRunBacktest}
+        />
 
-            {showBotLogs && (
-              <BotLogs 
-              className="flex-1 flex-shrink-0"  
-                results={results}
-                selectedTradingCoin={selectedTradingCoin}
-                tradingTimeInterval={tradingTimeInterval}
-                setResults={setResults}
-              />
-            )}
+
+{showBotLogs && (
+          <BotLogs 
+            className="flex-1 flex-shrink-0"  
+            results={results}
+            selectedTradingCoin={backTestCoin}  // Update this based on which test is running
+            tradingTimeInterval={backTestTimeFrame}  // Update this based on which test is running
+            setResults={setResults}
+          />
+        )}
           
         </div>
 
