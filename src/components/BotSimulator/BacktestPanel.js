@@ -121,7 +121,8 @@ const BacktestPanel = ({
       {/* Buy Indicators */}
       <div className="flex-1 mb-6 overflow-hidden min-h-0">
         <label className="block text-sm font-medium mb-2 text-green-300">Buy Indicators:</label>
-        <div className="h-[200px] overflow-y-auto pr-2 space-y-4">
+        <div className="h-[200px] overflow-y-auto pr-2 space-y-4 scrollbar-thin  scrollbar-thumb-gray-300
+                      scrollbar-track-transparent">
           {Object.entries(buyIndicators).map(([key, indicator]) => (
             <div key={`buy-${key}`} className="flex flex-col">
               <div className="flex items-center">
@@ -145,7 +146,8 @@ const BacktestPanel = ({
       {/* Sell Indicators */}
       <div className="flex-1 mb-6 overflow-hidden min-h-0">
         <label className="block text-sm font-medium mb-2 text-red-300">Sell Indicators:</label>
-        <div className="h-[200px] overflow-y-auto pr-2 space-y-4">
+        <div className="h-[200px] overflow-y-auto pr-2 space-y-4 scrollbar-thin  scrollbar-thumb-gray-300
+                      scrollbar-track-transparent">
           {Object.entries(sellIndicators).map(([key, indicator]) => (
             <div key={`sell-${key}`} className="flex flex-col">
               <div className="flex items-center">
