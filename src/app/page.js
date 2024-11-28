@@ -60,37 +60,44 @@ export default function Home() {
 
   // Fetch chart data and last price
   useEffect(() => {
-    const fetchChartData = async () => {
-      try {
-        const response = await fetch(
-          `https://api.binance.com/api/v3/klines?symbol=${coin}&interval=${timeInterval}&limit=70`
-        );
-        const data = await response.json();
-        
-        const formattedData = data.map((item) => ({
-          x: item[0],
-          o: parseFloat(item[1]),
-          h: parseFloat(item[2]),
-          l: parseFloat(item[3]),
-          c: parseFloat(item[4])
-        }));
-        
-        setLastPrice(formattedData[formattedData.length - 1].c);
-      } catch (error) {
-        console.error("Error fetching chart data:", error);
-      }
+    let ws;
+    let reconnectAttempt = 0;
+    const maxReconnectAttempts = 5;
+
+    const connect = () => {
+      ws = new WebSocket(`wss://stream.binance.com:9443/ws/${coin.toLowerCase()}@trade`);
+
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        const newPrice = parseFloat(data.p);
+        console.log(`New price update for ${coin}: ${newPrice}`);
+        setLastPrice(newPrice);
+        reconnectAttempt = 0;
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+
+      ws.onclose = () => {
+        if (reconnectAttempt < maxReconnectAttempts) {
+          reconnectAttempt++;
+          console.log(`WebSocket closed. Reconnecting attempt ${reconnectAttempt}...`);
+          setTimeout(connect, 3000); // Reconnect after 3 seconds
+        } else {
+          console.error('Max reconnection attempts reached');
+        }
+      };
     };
 
-    // Fetch chart data every 5 seconds
-    const intervalId = setInterval(fetchChartData, 5000);
-
-    // Initial fetch
-    fetchChartData();
+    connect();
 
     return () => {
-      clearInterval(intervalId);
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
     };
-  }, [coin, timeInterval]);
+  }, [coin]);
 
   
 
