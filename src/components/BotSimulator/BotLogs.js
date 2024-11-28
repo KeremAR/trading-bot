@@ -10,9 +10,13 @@ export default function BotLogs({
   useEffect(() => {
     const fetchTradingLogs = async () => {
       try {
-        // Use the environment variable for the API URL
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        console.log('Attempting to fetch from:', `${apiUrl}/api/trading-logs`);
+        
         const response = await fetch(`${apiUrl}/api/trading-logs`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
         
         // Format the logs
@@ -26,9 +30,9 @@ export default function BotLogs({
           message: `Bot started...\nMonitoring market conditions...\n${profitMessages}\n${logMessages}`
         });
       } catch (error) {
-        console.error('Error fetching trading logs:', error);
+        console.error('Detailed error:', error);
         setResults({
-          message: `Error fetching trading logs. API URL: ${process.env.NEXT_PUBLIC_API_URL}`
+          message: `Error fetching trading logs. API URL: ${process.env.NEXT_PUBLIC_API_URL}\nError: ${error.message}`
         });
       }
     };
