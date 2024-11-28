@@ -402,9 +402,31 @@ export default function Home() {
     calculateTotalBalance();
   }, [balance, lastPrice, selectedCoin]);
 
+  const [initialBalance, setInitialBalance] = useState(null);
+
+  // Add this useEffect to fetch initial balance
+  useEffect(() => {
+    const fetchInitialBalance = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/initial-balance');
+        const data = await response.json();
+        setInitialBalance(data.initial_balance);
+      } catch (error) {
+        console.error('Error fetching initial balance:', error);
+      }
+    };
+
+    fetchInitialBalance();
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-900">
       <main className="flex-grow py-4">
+        {initialBalance !== null && (
+          <div className="text-white mb-4 px-4">
+            Initial Balance: ${initialBalance.toLocaleString()}
+          </div>
+        )}
         <div className="flex flex-col lg:flex-row gap-4 mb-6">
           <div className="flex-grow bg-gray-800 p-4">
             <div className="flex items-center justify-between mb-2">
