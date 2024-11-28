@@ -382,6 +382,26 @@ export default function Home() {
     setShowBotLogs(true);
   };
 
+  const [totalBalance, setTotalBalance] = useState(0);
+
+  // Add this useEffect after your other useEffect hooks
+  useEffect(() => {
+    const calculateTotalBalance = () => {
+      // Start with USDT balance
+      let total = balance.usdt;
+      
+      // Add the value of each crypto
+      if (lastPrice) {
+        const coinKey = selectedCoin.toLowerCase();
+        total += balance[coinKey] * lastPrice;
+      }
+      
+      setTotalBalance(total);
+    };
+
+    calculateTotalBalance();
+  }, [balance, lastPrice, selectedCoin]);
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-900">
       <main className="flex-grow py-4">
@@ -415,6 +435,8 @@ export default function Home() {
             handleBtcChange={handleBtcChange}
             handleBuySubmission={handleBuySubmission}
             handleSellSubmission={handleSellSubmission}
+            totalBalance={totalBalance}
+            lastPrice={lastPrice}
           />
         </div>
         
