@@ -133,7 +133,14 @@ const BacktestPanel = ({
                   onChange={() => toggleBuyIndicator(key)}
                   className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
                 />
-                <label htmlFor={`buy-${key}`} className="ml-2 text-sm text-white">
+                <label 
+                  htmlFor={`buy-${key}`} 
+                  className="ml-2 text-sm text-white"
+                  onClick={(e) => {
+                    e.preventDefault(); // Prevent default label behavior
+                    toggleBuyIndicator(key);
+                  }}
+                >
                   {indicator.name}
                 </label>
               </div>
@@ -158,7 +165,14 @@ const BacktestPanel = ({
                   onChange={() => toggleSellIndicator(key)}
                   className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
                 />
-                <label htmlFor={`sell-${key}`} className="ml-2 text-sm text-white">
+                <label 
+                  htmlFor={`sell-${key}`} 
+                  className="ml-2 text-sm text-white"
+                  onClick={(e) => {
+                    e.preventDefault(); // Prevent default label behavior
+                    toggleSellIndicator(key);
+                  }}
+                >
                   {indicator.name}
                 </label>
               </div>

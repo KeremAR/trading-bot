@@ -150,6 +150,7 @@ export default function Home() {
   });
 
   const toggleBuyIndicator = (indicatorKey) => {
+    console.log('Backtest toggle called for:', indicatorKey);
     setBuyIndicators(prev => ({
       ...prev,
       [indicatorKey]: {
@@ -216,15 +217,12 @@ export default function Home() {
         return `${value.name}: ${value.value}`;
       });
 
- 
-
     setResults(prevResults => ({
       message: (prevResults?.message || '') + 
         `\n[${new Date().toLocaleTimeString()}] Running backtest for ${backTestCoin} on ${backTestTimeFrame} timeframe\n` +
-        `Period: Last ${backTestPeriod} days\n` +
+        `Period: ${backTestPeriod} days\n` +
         `Buy Indicators: ${activeBuyIndicators.join(', ') || 'None'}\n` +
-        `Sell Indicators: ${activeSellIndicators.join(', ') || 'None'}\n` 
-       
+        `Sell Indicators: ${activeSellIndicators.join(', ') || 'None'}\n`
     }));
     setShowBotLogs(true);
   };
@@ -247,6 +245,7 @@ export default function Home() {
   });
 
   const toggleLiveBuyIndicator = (indicatorKey) => {
+    console.log('Live test toggle called for:', indicatorKey);
     setLiveBuyIndicators(prev => ({
       ...prev,
       [indicatorKey]: {
@@ -293,7 +292,7 @@ export default function Home() {
   };
 
   const handleRunLivetest = () => {
-    const activeBuyIndicators = Object.entries(liveBuyIndicators)
+    const activeLiveBuyIndicators = Object.entries(liveBuyIndicators)
       .filter(([_, value]) => value.active)
       .map(([key, value]) => {
         if (key === 'macd') {
@@ -316,7 +315,7 @@ export default function Home() {
     setResults(prevResults => ({
       message: (prevResults?.message || '') + 
         `\n[${new Date().toLocaleTimeString()}] Running livetest for ${liveTestCoin} on ${liveTestTimeFrame} timeframe\n` +
-        `Buy Indicators: ${activeBuyIndicators.join(', ') || 'None'}\n` +
+        `Buy Indicators: ${activeLiveBuyIndicators.join(', ') || 'None'}\n` +
         `Sell Indicators: ${activeSellIndicators.join(', ') || 'None'}\n` 
     }));
     setShowBotLogs(true);
