@@ -112,9 +112,17 @@ const TradingPanel = ({
             />
           </div>
           <div>
-            <label className="block text-sm mb-1">
-              {selectedCoin} Amount (Available: {balance[selectedCoin.toLowerCase()]?.toFixed(8) || '0.00'} {selectedCoin})
-            </label>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-sm">
+                {selectedCoin} Amount (Available: {balance[selectedCoin.toLowerCase()]?.toFixed(8) || '0.00'} {selectedCoin})
+              </label>
+              <button 
+                onClick={() => handleBtcChange(balance[selectedCoin.toLowerCase()]?.toString() || '0')}
+                className="text-xs bg-blue-600 px-2 py-1 rounded hover:bg-blue-700 transition-colors"
+              >
+                Max
+              </button>
+            </div>
             <input
               type="number"
               value={tradeValues.btc}

@@ -130,11 +130,65 @@ export default function Home() {
 
 
   const handleBuySubmission = () => {
-    // Implement buy submission logic
+    const usdtAmount = parseFloat(tradeValues.usdt);
+    const coinAmount = parseFloat(tradeValues.btc);
+    
+    if (usdtAmount > balance.usdt) {
+      alert('Insufficient USDT balance');
+      return;
+    }
+
+    const coinKey = selectedCoin.toLowerCase();
+
+    // Update balance first
+    setBalance(prev => ({
+      ...prev,
+      usdt: prev.usdt - usdtAmount,
+      [coinKey]: prev[coinKey] + coinAmount
+    }));
+
+    // Add colored log entry with updated balance
+    setResults(prevResults => ({
+      message: `${prevResults?.message || ''}\n` +
+        `<span style="color: #94a3b8">[${new Date().toLocaleTimeString()}]</span> ` +
+        `<span style="color: #22c55e">BUY: ${coinAmount.toFixed(8)} ${selectedCoin} @ ${lastPrice} USDT ` +
+        `(Total: ${usdtAmount.toFixed(2)} USDT)</span>\n` +
+        `<span style="color: #94a3b8">Balance: ${(balance.usdt - usdtAmount).toFixed(2)} USDT | ` +
+        `${selectedCoin}: ${(balance[coinKey] + coinAmount).toFixed(8)}</span>`
+    }));
+
+    setTradeValues({ usdt: '', btc: '' });
   };
 
   const handleSellSubmission = () => {
-    // Implement sell submission logic
+    const usdtAmount = parseFloat(tradeValues.usdt);
+    const coinAmount = parseFloat(tradeValues.btc);
+    
+    const coinKey = selectedCoin.toLowerCase();
+
+    if (coinAmount > balance[coinKey]) {
+      alert(`Insufficient ${selectedCoin} balance`);
+      return;
+    }
+
+    // Update balance first
+    setBalance(prev => ({
+      ...prev,
+      usdt: prev.usdt + usdtAmount,
+      [coinKey]: prev[coinKey] - coinAmount
+    }));
+
+    // Add colored log entry with updated balance
+    setResults(prevResults => ({
+      message: `${prevResults?.message || ''}\n` +
+        `<span style="color: #94a3b8">[${new Date().toLocaleTimeString()}]</span> ` +
+        `<span style="color: #ef4444">SELL: ${coinAmount.toFixed(8)} ${selectedCoin} @ ${lastPrice} USDT ` +
+        `(Total: ${usdtAmount.toFixed(2)} USDT)</span>\n` +
+        `<span style="color: #94a3b8">Balance: ${(balance.usdt + usdtAmount).toFixed(2)} USDT | ` +
+        `${selectedCoin}: ${(balance[coinKey] - coinAmount).toFixed(8)}</span>`
+    }));
+
+    setTradeValues({ usdt: '', btc: '' });
   };
 
   // Add these new states after your existing useState declarations

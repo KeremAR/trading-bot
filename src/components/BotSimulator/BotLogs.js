@@ -16,7 +16,11 @@ export default function BotLogs({
           {results && (
             <div className="">
               {results.message.split('\n').map((msg, index) => (
-                <p key={index} className="mb-1">{msg}</p>
+                <p 
+                  key={index} 
+                  className="mb-1"
+                  dangerouslySetInnerHTML={{ __html: msg }}
+                />
               ))}
             </div>
           )}
