@@ -300,12 +300,12 @@ export default function Home() {
             // Enhanced results formatting
             const formattedMessage = `
 <span style="color: #94a3b8">[${new Date().toLocaleTimeString()}] Backtest Results for ${backTestCoin}USDT:</span>
-<span style="color: #ffffff">Timeframe: ${backTestTimeFrame}</span>
-<span style="color: #ffffff">Period: ${backTestPeriod} days</span>
+<span style="color: #ffffff"><b>Timeframe:</b> ${backTestTimeFrame}</span>
+<span style="color: #ffffff"><b>Period:</b>  ${backTestPeriod} days</span>
 <span style="color: ${data.profit >= 0 ? '#22c55e' : '#ef4444'}">Profit: $${data.profit.toFixed(2)}</span>
-${data.trades ? `\nTotal Trades: ${data.trades}` : ''}
-${data.winRate ? `\nWin Rate: ${data.winRate}%` : ''}
-${Array.isArray(data.logs) ? '\nTrade History:\n' + data.logs.join('\n') : ''}`;
+${data.trades ? `\n<b>Total Trades:</b> ${data.trades}` : ''}
+${data.winRate ? `\n<b>Win Rate:</b> ${data.winRate}%` : ''}
+${Array.isArray(data.logs) ? '\n<b>Trade History:</b>\n' + data.logs.join('\n') : ''}`;
 
             setResults(prevResults => ({
                 message: (prevResults?.message || '') + formattedMessage

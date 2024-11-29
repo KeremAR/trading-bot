@@ -9,9 +9,17 @@ export default function BotLogs({
 }) {
   return (
     <div className={`bg-gray-800 p-6 rounded-lg flex flex-col flex-grow ${className}`}>
+      <div className='flex justify-between'>
       <h3 className="text-lg font-semibold mb-4">Bot Logs</h3>
-      <div className="h-[600px] bg-gray-700 rounded-md p-4 overflow-y-auto">
-        <div className="text-gray-300">
+      <button
+          onClick={() => setResults(null)}
+          className="text-red-700 hover:text-red-900"
+        >
+          Clear Logs
+        </button>
+        </div>
+      <div className="h-[600px] bg-gray-700 rounded-md p-4 overflow-y-auto items-center">
+        <div className="text-gray-300 text-center">
           {results && (
             <div className="">
               {results.message.split('\n').map((msg, index) => (
@@ -22,8 +30,10 @@ export default function BotLogs({
                 />
               ))}
             </div>
+            
           )}
         </div>
+        
       </div>
       <button
         onClick={() => {

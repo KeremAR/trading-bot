@@ -68,111 +68,169 @@ def get_interval_string(timeframe):
 def calculate_dynamic_indicators(df, buy_indicators, sell_indicators):
     """Calculate only the indicators that are active in the frontend"""
     
-    # Combine both indicator sets to process all active indicators
-    all_indicators = {**buy_indicators, **sell_indicators}
-    
-    for indicator_key, settings in all_indicators.items():
-        if not settings.get('active', False):
-            continue
+    try:
+        # Combine both indicator sets to process all active indicators
+        all_indicators = {**buy_indicators, **sell_indicators}
+        
+        # First, identify all unique SMA/EMA lengths needed
+        sma_lengths = set()
+        ema_lengths = set()
+        
+        for indicator_key, settings in all_indicators.items():
+            if not settings.get('active', False):
+                continue
+                
+            if indicator_key == 'rsi':
+                length = settings.get('value', 14)
+                df['RSI'] = ta.rsi(df['Close'], length=length)
+                
+            elif indicator_key == 'macd':
+                fast = settings.get('fast', 12)
+                slow = settings.get('slow', 26)
+                signal = settings.get('signal', 9)
+                macd = ta.macd(df['Close'], fast=fast, slow=slow, signal=signal)
+                df['MACD'] = macd[f'MACD_{fast}_{slow}_{signal}']
+                df['MACD_signal'] = macd[f'MACDs_{fast}_{slow}_{signal}']
+                
+            elif indicator_key == 'bollinger':
+                length = settings.get('length', 20)
+                std = settings.get('std', 2)
+                bb = ta.bbands(df['Close'], length=length, std=std)
+                df['middle_band'] = bb[f'BBM_{length}_{std}.0']
+                df['upper_band'] = bb[f'BBU_{length}_{std}.0']
+                df['lower_band'] = bb[f'BBL_{length}_{std}.0']
+                
+            elif indicator_key == 'sma':
+                length = int(settings.get('value', 20))
+                sma_lengths.add(length)
+                
+            elif indicator_key == 'ema':
+                length = int(settings.get('value', 20))
+                ema_lengths.add(length)
+        
+        # Calculate all needed SMAs
+        for length in sma_lengths:
+            df[f'SMA_{length}'] = ta.sma(df['Close'], length=length)
             
-        if indicator_key == 'rsi':
-            length = settings.get('value', 14)  # Use frontend value or default to 14
-            df['RSI'] = ta.rsi(df['Close'], length=length)
-            
-        elif indicator_key == 'macd':
-            # You might want to add these as configurable parameters in the frontend
-            fast = settings.get('fast', 12)
-            slow = settings.get('slow', 26)
-            signal = settings.get('signal', 9)
-            macd = ta.macd(df['Close'], fast=fast, slow=slow, signal=signal)
-            df['MACD'] = macd[f'MACD_{fast}_{slow}_{signal}']
-            df['MACD_signal'] = macd[f'MACDs_{fast}_{slow}_{signal}']
-            
-        elif indicator_key == 'bollinger':
-            length = settings.get('length', 20)
-            std = settings.get('std', 2)
-            bb = ta.bbands(df['Close'], length=length, std=std)
-            df['middle_band'] = bb[f'BBM_{length}_{std}.0']
-            df['upper_band'] = bb[f'BBU_{length}_{std}.0']
-            df['lower_band'] = bb[f'BBL_{length}_{std}.0']
-            
-    return df
+        # Calculate all needed EMAs
+        for length in ema_lengths:
+            df[f'EMA_{length}'] = ta.ema(df['Close'], length=length)
+        
+        return df
+        
+    except Exception as e:
+        print(f"Error calculating indicators: {str(e)}")
+        raise Exception(f"Error calculating indicators: {str(e)}")
 
 def backtest_strategy(df, buy_indicators, sell_indicators):
-    position = 0  # 0 means no position, 1 means holding crypto
-    balance = 10000  # Initial balance
-    amount = 0  # Amount of crypto held
-    trades = 0
-    wins = 0
-    trade_history = []
+    try:
+        position = 0  # 0 means no position, 1 means holding crypto
+        balance = 10000  # Initial balance
+        amount = 0  # Amount of crypto held
+        trades = 0
+        wins = 0
+        trade_history = []
+        buy_price = 0
 
-    for i in range(len(df)):
-        # Generate buy signal based on active indicators
-        buy_signal = True
-        for indicator, config in buy_indicators.items():
-            if config['active']:
-                if indicator == 'rsi':
-                    buy_signal &= df['RSI'].iloc[i] <= config['value']
-                elif indicator == 'macd':
-                    buy_signal &= df['MACD'].iloc[i] > df['MACD_signal'].iloc[i]
-                elif indicator == 'sma':
-                    buy_signal &= df['Close'].iloc[i] > df[f'SMA_{config["value"]}'].iloc[i]
-                elif indicator == 'ema':
-                    buy_signal &= df['Close'].iloc[i] > df[f'EMA_{config["value"]}'].iloc[i]
-                elif indicator == 'bollinger':
-                    buy_signal &= df['Close'].iloc[i] <= df['lower_band'].iloc[i]
+        # Check if there are any active indicators
+        active_buy_indicators = any(ind['active'] for ind in buy_indicators.values())
+        active_sell_indicators = any(ind['active'] for ind in sell_indicators.values())
 
-        # Generate sell signal based on active indicators
-        sell_signal = True
-        for indicator, config in sell_indicators.items():
-            if config['active']:
-                if indicator == 'rsi':
-                    sell_signal &= df['RSI'].iloc[i] >= config['value']
-                elif indicator == 'macd':
-                    sell_signal &= df['MACD'].iloc[i] < df['MACD_signal'].iloc[i]
-                elif indicator == 'sma':
-                    sell_signal &= df['Close'].iloc[i] < df[f'SMA_{config["value"]}'].iloc[i]
-                elif indicator == 'ema':
-                    sell_signal &= df['Close'].iloc[i] < df[f'EMA_{config["value"]}'].iloc[i]
-                elif indicator == 'bollinger':
-                    sell_signal &= df['Close'].iloc[i] >= df['upper_band'].iloc[i]
+        for i in range(len(df)):
+            if i < max(int(ind.get('value', 0)) for ind in {**buy_indicators, **sell_indicators}.values() if ind['active']):
+                continue  # Skip until we have enough data for the longest indicator period
+                
+            current_time = df.index[i].strftime('%Y-%m-%d %H:%M:%S')
+            
+            # Initialize signals
+            buy_signal = False if active_buy_indicators else False
+            sell_signal = False if active_sell_indicators else False
+            
+            # Generate buy signal based on active indicators
+            if active_buy_indicators:
+                buy_signal = True
+                for indicator, config in buy_indicators.items():
+                    if config['active']:
+                        if indicator == 'rsi':
+                            buy_signal &= df['RSI'].iloc[i] <= config['value']
+                        elif indicator == 'macd':
+                            buy_signal &= df['MACD'].iloc[i] > df['MACD_signal'].iloc[i]
+                        elif indicator == 'bollinger':
+                            buy_signal &= df['Close'].iloc[i] <= df['lower_band'].iloc[i]
+                        elif indicator == 'sma':
+                            length = int(config['value'])
+                            col_name = f'SMA_{length}'
+                            if col_name in df.columns:
+                                buy_signal &= df['Close'].iloc[i] > df[col_name].iloc[i]
+                        elif indicator == 'ema':
+                            length = int(config['value'])
+                            col_name = f'EMA_{length}'
+                            if col_name in df.columns:
+                                buy_signal &= df['Close'].iloc[i] > df[col_name].iloc[i]
 
-        # Buy condition
-        if buy_signal and position == 0:
-            buy_price = df['Close'].iloc[i]
-            amount = balance / buy_price  # Buy as much crypto as possible
-            balance = 0
-            position = 1
-            trades += 1
-            trade_history.append(f"BUY: Price=${buy_price:.2f}, Amount={amount:.4f}")
+            # Generate sell signal based on active indicators
+            if active_sell_indicators:
+                sell_signal = True
+                for indicator, config in sell_indicators.items():
+                    if config['active']:
+                        if indicator == 'rsi':
+                            sell_signal &= df['RSI'].iloc[i] >= config['value']
+                        elif indicator == 'macd':
+                            sell_signal &= df['MACD'].iloc[i] < df['MACD_signal'].iloc[i]
+                        elif indicator == 'bollinger':
+                            sell_signal &= df['Close'].iloc[i] >= df['upper_band'].iloc[i]
+                        elif indicator == 'sma':
+                            length = int(config['value'])
+                            col_name = f'SMA_{length}'
+                            if col_name in df.columns:
+                                sell_signal &= df['Close'].iloc[i] < df[col_name].iloc[i]
+                        elif indicator == 'ema':
+                            length = int(config['value'])
+                            col_name = f'EMA_{length}'
+                            if col_name in df.columns:
+                                sell_signal &= df['Close'].iloc[i] < df[col_name].iloc[i]
 
-        # Sell condition
-        elif sell_signal and position == 1:
-            sell_price = df['Close'].iloc[i]
-            balance = amount * sell_price
-            if sell_price > buy_price:
-                wins += 1
+            # Buy condition - only if we have active buy indicators
+            if buy_signal and position == 0 and active_buy_indicators:
+                buy_price = df['Close'].iloc[i]
+                amount = balance / buy_price
+                balance = 0
+                position = 1
+                trades += 1
+                trade_history.append(f"<span style='color: #22c55e'>Buy Signal: Date: {current_time}, Price: {buy_price:.2f}, Balance: ${amount * buy_price:.2f}</span>")
+
+            # Sell condition - only if we have active sell indicators
+            elif sell_signal and position == 1 and active_sell_indicators:
+                sell_price = df['Close'].iloc[i]
+                balance = amount * sell_price
+                if sell_price > buy_price:
+                    wins += 1
+                amount = 0
+                position = 0
+                trade_history.append(f"<span style='color: #ef4444'>Sell Signal: Date: {current_time}, Price: {sell_price:.2f}, Balance: ${balance:.2f}</span>")
+
+        # Close any remaining position
+        if position == 1:
+            final_price = df['Close'].iloc[-1]
+            balance = amount * final_price
+            current_time = df.index[-1].strftime('%Y-%m-%d %H:%M:%S')
             amount = 0
-            position = 0
-            trade_history.append(f"SELL: Price=${sell_price:.2f}, Balance=${balance:.2f}")
+            trade_history.append(f"<span style='color: #ef4444'>Final Sell Signal: Date: {current_time}, Price: {final_price:.2f}, Balance: ${balance:.2f}</span>")
 
-    # Close any remaining position
-    if position == 1:
-        final_price = df['Close'].iloc[-1]
-        balance = amount * final_price
-        amount = 0
-        trade_history.append(f"FINAL SELL: Price=${final_price:.2f}, Balance=${balance:.2f}")
+        profit = balance - 10000
+        win_rate = (wins / trades * 100) if trades > 0 else 0
 
-    profit = balance - 10000  # Calculate profit
-    win_rate = (wins / trades * 100) if trades > 0 else 0
+        return {
+            'success': True,
+            'profit': profit,
+            'trades': trades,
+            'winRate': round(win_rate, 2),
+            'logs': trade_history
+        }
 
-    return {
-        'success': True,
-        'profit': profit,
-        'trades': trades,
-        'winRate': round(win_rate, 2),
-        'logs': trade_history
-    }
+    except Exception as e:
+        print(f"Error in backtest strategy: {str(e)}")
+        raise Exception(f"Error in backtest strategy: {str(e)}")
 
 def trade(balance_history, interval):
     logs = []
