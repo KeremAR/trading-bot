@@ -6,7 +6,21 @@ import TradingViewChart from '@/components/TradingViewChart';
 import TradingPanel from '@/components/TradingPanel';
 import BacktestPanel from '@/components/BotSimulator/BacktestPanel';
 
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+// Remove any trailing slash from apiUrl if it exists
+const baseUrl = apiUrl?.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
+
 export default function Home() {
+  useEffect(() => {
+    if (!baseUrl) {
+      console.error('API URL is not defined. Please check your environment variables.');
+      setResults(prevResults => ({
+        message: (prevResults?.message || '') + 
+          `\n<span style='color: #ef4444'>[${new Date().toLocaleTimeString()}] Error: API URL is not configured</span>`
+      }));
+    }
+  }, []);
+
   const [coin, setCoin] = useState("BTCUSDT");
   const [timeInterval, setTimeInterval] = useState("1m"); 
   
@@ -441,7 +455,111 @@ ${Array.isArray(data.logs) ? '\n<b>Trade History:</b>\n' + data.logs.join('\n') 
     calculateTotalBalance();
   }, [balance, lastPrice, selectedCoin]);
 
-  
+  // Add these state variables at the top with other useState declarations
+  const [isLiveTestRunning, setIsLiveTestRunning] = useState(false);
+  const [liveTestInterval, setLiveTestInterval] = useState(null);
+
+  // Update the checkLiveTest function
+  const checkLiveTest = async () => {
+    if (!isLiveTestRunning) return; // Don't check if not running
+    
+    try {
+      const response = await fetch(`${baseUrl}/api/livetest/check`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          coin: liveTestCoin,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        if (data.trade_executed && data.message) {
+          setResults(prevResults => ({
+            message: (prevResults?.message || '') + `\n${data.message}`
+          }));
+        }
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      console.error('Error checking live test:', error);
+      setResults(prevResults => ({
+        message: (prevResults?.message || '') + 
+          `\n<span style='color: #ef4444'>[${new Date().toLocaleTimeString()}] Error checking live test: ${error.message}</span>`
+      }));
+      handleStopLivetest();
+    }
+  };
+
+  // Update the handleStopLivetest function
+  const handleStopLivetest = () => {
+    setIsLiveTestRunning(false); // Set this first
+    
+    if (liveTestInterval) {
+      clearInterval(liveTestInterval);
+      setLiveTestInterval(null);
+    }
+    
+    setResults(prevResults => ({
+      message: (prevResults?.message || '') + 
+        `\n<span style='color: #94a3b8'>[${new Date().toLocaleTimeString()}] Live test stopped</span>`
+    }));
+  };
+
+  // Update the handleStartLivetest function
+  const handleStartLivetest = async () => {
+    if (isLiveTestRunning) return; // Prevent multiple starts
+    
+    try {
+      const response = await fetch(`${baseUrl}/api/livetest/start`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          coin: liveTestCoin,
+          timeFrame: liveTestTimeFrame,
+          buyIndicators: liveBuyIndicators,
+          sellIndicators: liveSellIndicators,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setIsLiveTestRunning(true);
+        setResults(prevResults => ({
+          message: (prevResults?.message || '') + 
+            `\n<span style='color: #94a3b8'>[${new Date().toLocaleTimeString()}] ${data.message}</span>`
+        }));
+
+        // Start periodic checking
+        const interval = setInterval(checkLiveTest, 5000);
+        setLiveTestInterval(interval);
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      console.error('Error starting live test:', error);
+      setResults(prevResults => ({
+        message: (prevResults?.message || '') + 
+          `\n<span style='color: #ef4444'>[${new Date().toLocaleTimeString()}] Error starting live test: ${error.message}</span>`
+      }));
+    }
+  };
+
+  // Add cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      if (liveTestInterval) {
+        clearInterval(liveTestInterval);
+      }
+    };
+  }, [liveTestInterval]);
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-900">
@@ -483,10 +601,7 @@ ${Array.isArray(data.logs) ? '\n<b>Trade History:</b>\n' + data.logs.join('\n') 
         
         <div className="flex flex-col lg:flex-row gap-4 w-full">
         <LiveTest
-          className="flex-1 flex-shrink-0"
           selectedCoin={liveTestCoin}
-          setSelectedCoin={setLiveTestCoin}
-          coins={coins}
           timeFrames={timeFrames}
           selectedTimeFrame={liveTestTimeFrame}
           setSelectedTimeFrame={setLiveTestTimeFrame}
@@ -496,7 +611,12 @@ ${Array.isArray(data.logs) ? '\n<b>Trade History:</b>\n' + data.logs.join('\n') 
           toggleSellIndicator={toggleLiveSellIndicator}
           updateBuyIndicatorValue={updateLiveBuyIndicatorValue}
           updateSellIndicatorValue={updateLiveSellIndicatorValue}
-          onRunLivetest={handleRunLivetest}
+          onRunLivetest={handleStartLivetest}
+          onStopLivetest={handleStopLivetest}
+          isRunning={isLiveTestRunning}
+          className="flex-1"
+          setSelectedCoin={setLiveTestCoin}
+          coins={coins}
         />
 
         <BacktestPanel

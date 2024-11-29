@@ -12,6 +12,8 @@ const LiveTest = ({
   updateBuyIndicatorValue,
   updateSellIndicatorValue,
   onRunLivetest,
+  onStopLivetest,
+  isRunning,
   className,
   setSelectedCoin,
   coins,
@@ -156,11 +158,14 @@ const LiveTest = ({
 
       {/* Run Livetest Button */}
       <button
-        onClick={onRunLivetest}
-        className="w-full py-2 bg-green-600 text-white rounded-md hover:bg-green-700 
-                 transition-colors font-medium shadow-lg hover:shadow-xl mt-auto"
+        onClick={isRunning ? onStopLivetest : onRunLivetest}
+        className={`w-full py-2 ${
+          isRunning 
+            ? "bg-red-600 hover:bg-red-700" 
+            : "bg-green-600 hover:bg-green-700"
+        } text-white rounded-md transition-colors font-medium shadow-lg hover:shadow-xl mt-auto`}
       >
-        Run Livetest
+        {isRunning ? 'Stop Livetest' : 'Run Livetest'}
       </button>
     </div>
   );
