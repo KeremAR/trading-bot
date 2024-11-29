@@ -4,3 +4,4 @@ pandas-ta==0.3.14b0
 python-binance==1.0.19
 flask==3.0.2
 flask-cors==4.0.0
+python-dotenv==1.0.0

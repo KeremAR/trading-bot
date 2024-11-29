@@ -7,47 +7,11 @@ export default function BotLogs({
   tradingTimeInterval, 
   setResults 
 }) {
-  useEffect(() => {
-    const fetchTradingLogs = async () => {
-      try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        console.log('Attempting to fetch from:', `${apiUrl}/api/trading-logs`);
-        
-        const response = await fetch(`${apiUrl}/api/trading-logs`);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        
-        // Format the logs
-        const logMessages = data.logs.join('\n');
-        const profitMessages = `
-          5 Minute Interval profit: $${data.profits['5m'].toFixed(2)}
-          1 Hour Interval profit: $${data.profits['1h'].toFixed(2)}
-        `;
-        
-        setResults({
-          message: `Bot started...\nMonitoring market conditions...\n${profitMessages}\n${logMessages}`
-        });
-      } catch (error) {
-        console.error('Detailed error:', error);
-        setResults({
-          message: `Error fetching trading logs. API URL: ${process.env.NEXT_PUBLIC_API_URL}\nError: ${error.message}`
-        });
-      }
-    };
-
-    fetchTradingLogs();
-  }, [setResults]);
-
   return (
     <div className={`bg-gray-800 p-6 rounded-lg flex flex-col flex-grow ${className}`}>
       <h3 className="text-lg font-semibold mb-4">Bot Logs</h3>
       <div className="h-[600px] bg-gray-700 rounded-md p-4 overflow-y-auto">
         <div className="text-gray-300">
-          <p className="mb-1">Bot started...</p>
-          <p className="mb-1">Monitoring market conditions...</p>
-          
           {results && (
             <div className="">
               {results.message.split('\n').map((msg, index) => (

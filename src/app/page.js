@@ -70,7 +70,7 @@ export default function Home() {
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
         const newPrice = parseFloat(data.p);
-        console.log(`New price update for ${coin}: ${newPrice}`);
+        //console.log(`New price update for ${coin}: ${newPrice}`);
         setLastPrice(newPrice);
         reconnectAttempt = 0;
       };
@@ -259,32 +259,71 @@ export default function Home() {
 
   const timeFrames = ['1m', '15m', '1h', '4h', '1d'];
 
-  const handleRunBacktest = () => {
-    const activeBuyIndicators = Object.entries(buyIndicators)
-      .filter(([_, value]) => value.active)
-      .map(([key, value]) => {
-        if (key === 'macd') {
-          return `${value.name}: [${value.values.join(', ')}]`;
-        }
-        return `${value.name}: ${value.value}`;
-      });
+  const handleRunBacktest = async () => {
+    try {
+        // Filter active indicators
+        const activeBuyIndicators = Object.fromEntries(
+            Object.entries(buyIndicators)
+                .filter(([_, value]) => value.active)
+        );
 
-    const activeSellIndicators = Object.entries(sellIndicators)
-      .filter(([_, value]) => value.active)
-      .map(([key, value]) => {
-        if (key === 'macd') {
-          return `${value.name}: [${value.values.join(', ')}]`;
-        }
-        return `${value.name}: ${value.value}`;
-      });
+        const activeSellIndicators = Object.fromEntries(
+            Object.entries(sellIndicators)
+                .filter(([_, value]) => value.active)
+        );
 
-    setResults(prevResults => ({
-      message: (prevResults?.message || '') + 
-        `\n[${new Date().toLocaleTimeString()}] Running backtest for ${backTestCoin} on ${backTestTimeFrame} timeframe\n` +
-        `Period: ${backTestPeriod} days\n` +
-        `Buy Indicators: ${activeBuyIndicators.join(', ') || 'None'}\n` +
-        `Sell Indicators: ${activeSellIndicators.join(', ') || 'None'}\n`
-    }));
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        // Remove any trailing slash from apiUrl if it exists
+        const baseUrl = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
+        
+        const response = await fetch(`${baseUrl}/api/backtest`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                coin: backTestCoin,
+                timeFrame: backTestTimeFrame,
+                period: parseInt(backTestPeriod),
+                buyIndicators: activeBuyIndicators,
+                sellIndicators: activeSellIndicators
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        if (data.success) {
+            // Enhanced results formatting
+            const formattedMessage = `
+<span style="color: #94a3b8">[${new Date().toLocaleTimeString()}] Backtest Results for ${backTestCoin}USDT:</span>
+<span style="color: #ffffff">Timeframe: ${backTestTimeFrame}</span>
+<span style="color: #ffffff">Period: ${backTestPeriod} days</span>
+<span style="color: ${data.profit >= 0 ? '#22c55e' : '#ef4444'}">Profit: $${data.profit.toFixed(2)}</span>
+${data.trades ? `\nTotal Trades: ${data.trades}` : ''}
+${data.winRate ? `\nWin Rate: ${data.winRate}%` : ''}
+${Array.isArray(data.logs) ? '\nTrade History:\n' + data.logs.join('\n') : ''}`;
+
+            setResults(prevResults => ({
+                message: (prevResults?.message || '') + formattedMessage
+            }));
+        } else {
+            setResults(prevResults => ({
+                message: (prevResults?.message || '') + 
+                    `\n<span style="color: #ef4444">[${new Date().toLocaleTimeString()}] Backtest failed: ${data.error}</span>`
+            }));
+        }
+    } catch (error) {
+        console.error('Error running backtest:', error);
+        setResults(prevResults => ({
+            message: (prevResults?.message || '') + 
+                `\n<span style="color: #ef4444">[${new Date().toLocaleTimeString()}] Error running backtest: ${error.message}</span>`
+        }));
+    }
+    
     setShowBotLogs(true);
   };
 
@@ -402,31 +441,11 @@ export default function Home() {
     calculateTotalBalance();
   }, [balance, lastPrice, selectedCoin]);
 
-  const [initialBalance, setInitialBalance] = useState(null);
-
-  // Add this useEffect to fetch initial balance
-  useEffect(() => {
-    const fetchInitialBalance = async () => {
-      try {
-        const response = await fetch('http://localhost:5000/api/initial-balance');
-        const data = await response.json();
-        setInitialBalance(data.initial_balance);
-      } catch (error) {
-        console.error('Error fetching initial balance:', error);
-      }
-    };
-
-    fetchInitialBalance();
-  }, []);
+  
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-900">
       <main className="flex-grow py-4">
-        {initialBalance !== null && (
-          <div className="text-white mb-4 px-4">
-            Initial Balance: ${initialBalance.toLocaleString()}
-          </div>
-        )}
         <div className="flex flex-col lg:flex-row gap-4 mb-6">
           <div className="flex-grow bg-gray-800 p-4">
             <div className="flex items-center justify-between mb-2">
