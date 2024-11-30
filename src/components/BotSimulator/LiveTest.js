@@ -19,44 +19,66 @@ const LiveTest = ({
   coins,
 }) => {
 
-  const renderIndicatorInput = (key, indicator, updateValue) => {
-    if (key === 'macd') {
+  const renderIndicatorInputs = (indicator, config, type) => {
+    const updateFunction = type === 'buy' ? updateBuyIndicatorValue : updateSellIndicatorValue;
+    
+    if (indicator === 'macd') {
       return (
-        <div className="ml-6 mt-2 space-y-2 flex">
+        <div className="flex gap-2">
           <input
             type="number"
-            value={indicator.values[0]}
-            onChange={(e) => updateValue(key, 0, e.target.value)}
-            className="w-16 p-1 bg-gray-700 text-white rounded-md mr-2"
-            placeholder="Fast"
+            className="w-16 px-2 py-1 bg-gray-700 rounded"
+            value={config.values[0]}
+            onChange={(e) => updateFunction(indicator, 0, e.target.value)}
           />
           <input
             type="number"
-            value={indicator.values[1]}
-            onChange={(e) => updateValue(key, 1, e.target.value)}
-            className="w-16 p-1 bg-gray-700 text-white rounded-md mr-2"
-            placeholder="Slow"
+            className="w-16 px-2 py-1 bg-gray-700 rounded"
+            value={config.values[1]}
+            onChange={(e) => updateFunction(indicator, 1, e.target.value)}
           />
           <input
             type="number"
-            value={indicator.values[2]}
-            onChange={(e) => updateValue(key, 2, e.target.value)}
-            className="w-16 p-1 bg-gray-700 text-white rounded-md"
-            placeholder="Signal"
+            className="w-16 px-2 py-1 bg-gray-700 rounded"
+            value={config.values[2]}
+            onChange={(e) => updateFunction(indicator, 2, e.target.value)}
           />
         </div>
       );
+    } else if (indicator === 'bollinger') {
+      return (
+        <div className="flex gap-2 items-center">
+          <div className="flex flex-col">
+            <label className="text-xs text-gray-400">Period</label>
+            <input
+              type="number"
+              className="w-16 px-2 py-1 bg-gray-700 rounded"
+              value={config.value}
+              onChange={(e) => updateFunction(indicator, null, e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col">
+            <label className="text-xs text-gray-400">StdDev</label>
+            <input
+              type="number"
+              step="0.1"
+              className="w-16 px-2 py-1 bg-gray-700 rounded"
+              value={config.std_dev}
+              onChange={(e) => updateFunction(indicator, null, e.target.value, true)}
+            />
+          </div>
+        </div>
+      );
+    } else {
+      return (
+        <input
+          type="number"
+          className="w-16 px-2 py-1 bg-gray-700 rounded"
+          value={config.value}
+          onChange={(e) => updateFunction(indicator, null, e.target.value)}
+        />
+      );
     }
-
-    return (
-      <input
-        type="number"
-        value={indicator.value}
-        onChange={(e) => updateValue(key, null, e.target.value)}
-        className="ml-6 mt-2 w-24 p-1 bg-gray-700 text-white rounded-md"
-        placeholder="Period"
-      />
-    );
   };
 
   return (
@@ -124,7 +146,7 @@ const LiveTest = ({
                   {indicator.name}
                 </label>
               </div>
-              {indicator.active && renderIndicatorInput(key, indicator, updateBuyIndicatorValue)}
+              {indicator.active && renderIndicatorInputs(key, indicator, 'buy')}
             </div>
           ))}
         </div>
@@ -149,7 +171,7 @@ const LiveTest = ({
                   {indicator.name}
                 </label>
               </div>
-              {indicator.active && renderIndicatorInput(key, indicator, updateSellIndicatorValue)}
+              {indicator.active && renderIndicatorInputs(key, indicator, 'sell')}
             </div>
           ))}
         </div>

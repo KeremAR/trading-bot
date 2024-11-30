@@ -347,7 +347,12 @@ ${Array.isArray(data.logs) ? '\n<b>Trade History:</b>\n' + data.logs.join('\n') 
     macd: { name: 'MACD', active: false, values: [12, 26, 9] },
     sma: { name: 'SMA', active: false, value: 50 },
     ema: { name: 'EMA', active: false, value: 20 },
-    bollinger: { name: 'Bollinger Bands', active: false, value: 20 }
+    bollinger: { 
+      name: 'Bollinger Bands', 
+      active: false, 
+      value: 20,  // period
+      std_dev: 2.0  // standard deviation
+    }
   });
 
   const [liveSellIndicators, setLiveSellIndicators] = useState({
@@ -355,7 +360,12 @@ ${Array.isArray(data.logs) ? '\n<b>Trade History:</b>\n' + data.logs.join('\n') 
     macd: { name: 'MACD', active: false, values: [12, 26, 9] },
     sma: { name: 'SMA', active: false, value: 200 },
     ema: { name: 'EMA', active: false, value: 50 },
-    bollinger: { name: 'Bollinger Bands', active: false, value: 20 }
+    bollinger: { 
+      name: 'Bollinger Bands', 
+      active: false, 
+      value: 20,  // period
+      std_dev: 2.0  // standard deviation
+    }
   });
 
   const toggleLiveBuyIndicator = (indicatorKey) => {
@@ -379,27 +389,31 @@ ${Array.isArray(data.logs) ? '\n<b>Trade History:</b>\n' + data.logs.join('\n') 
     }));
   };
 
-  const updateLiveBuyIndicatorValue = (key, valueIndex, newValue) => {
+  const updateLiveBuyIndicatorValue = (key, valueIndex, newValue, isStdDev = false) => {
     setLiveBuyIndicators(prev => ({
       ...prev,
       [key]: {
         ...prev[key],
         ...(valueIndex !== null
           ? { values: prev[key].values.map((v, i) => i === valueIndex ? Number(newValue) : v) }
-          : { value: Number(newValue) }
+          : isStdDev 
+            ? { std_dev: Number(newValue) }
+            : { value: Number(newValue) }
         )
       }
     }));
   };
 
-  const updateLiveSellIndicatorValue = (key, valueIndex, newValue) => {
+  const updateLiveSellIndicatorValue = (key, valueIndex, newValue, isStdDev = false) => {
     setLiveSellIndicators(prev => ({
       ...prev,
       [key]: {
         ...prev[key],
         ...(valueIndex !== null
           ? { values: prev[key].values.map((v, i) => i === valueIndex ? Number(newValue) : v) }
-          : { value: Number(newValue) }
+          : isStdDev 
+            ? { std_dev: Number(newValue) }
+            : { value: Number(newValue) }
         )
       }
     }));

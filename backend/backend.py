@@ -67,61 +67,50 @@ def get_interval_string(timeframe):
     return intervals.get(timeframe, Client.KLINE_INTERVAL_1HOUR)
 
 def calculate_dynamic_indicators(df, buy_indicators, sell_indicators):
-    """Calculate only the indicators that are active in the frontend"""
-    
     try:
-        # Combine both indicator sets to process all active indicators
+        # Combine active indicators from both buy and sell configurations
         all_indicators = {**buy_indicators, **sell_indicators}
         
-        # First, identify all unique SMA/EMA lengths needed
-        sma_lengths = set()
-        ema_lengths = set()
-        
-        for indicator_key, settings in all_indicators.items():
-            if not settings.get('active', False):
-                continue
+        for indicator, config in all_indicators.items():
+            if config['active']:
+                if indicator == 'bollinger':
+                    # Add standard deviation parameter (default to 2 if not specified)
+                    period = int(config.get('value', 20))  # Default period is 20
+                    std_dev = float(config.get('std_dev', 2.0))  # Default std_dev is 2
+                    
+                    # Calculate middle band (SMA)
+                    df['middle_band'] = df['Close'].rolling(window=period).mean()
+                    # Calculate standard deviation
+                    df['std'] = df['Close'].rolling(window=period).std()
+                    # Calculate upper and lower bands
+                    df['upper_band'] = df['middle_band'] + (df['std'] * std_dev)
+                    df['lower_band'] = df['middle_band'] - (df['std'] * std_dev)
+                    
+                    print(f"Calculated Bollinger Bands with period={period} and std_dev={std_dev}")
                 
-            if indicator_key == 'rsi':
-                length = settings.get('value', 14)
-                df['RSI'] = ta.rsi(df['Close'], length=length)
+                elif indicator == 'rsi':
+                    length = int(config['value'])
+                    df['RSI'] = ta.rsi(df['Close'], length=length)
                 
-            elif indicator_key == 'macd':
-                fast = settings.get('fast', 12)
-                slow = settings.get('slow', 26)
-                signal = settings.get('signal', 9)
-                macd = ta.macd(df['Close'], fast=fast, slow=slow, signal=signal)
-                df['MACD'] = macd[f'MACD_{fast}_{slow}_{signal}']
-                df['MACD_signal'] = macd[f'MACDs_{fast}_{slow}_{signal}']
+                elif indicator == 'macd':
+                    fast = int(config['values'][0])
+                    slow = int(config['values'][1])
+                    signal = int(config['values'][2])
+                    df['MACD'] = ta.macd(df['Close'], fast=fast, slow=slow)['MACD']
+                    df['MACD_signal'] = ta.macd(df['Close'], fast=fast, slow=slow)['MACDs']
                 
-            elif indicator_key == 'bollinger':
-                length = settings.get('length', 20)
-                std = settings.get('std', 2)
-                bb = ta.bbands(df['Close'], length=length, std=std)
-                df['middle_band'] = bb[f'BBM_{length}_{std}.0']
-                df['upper_band'] = bb[f'BBU_{length}_{std}.0']
-                df['lower_band'] = bb[f'BBL_{length}_{std}.0']
+                elif indicator == 'sma':
+                    length = int(config['value'])
+                    df[f'SMA_{length}'] = ta.sma(df['Close'], length=length)
                 
-            elif indicator_key == 'sma':
-                length = int(settings.get('value', 20))
-                sma_lengths.add(length)
-                
-            elif indicator_key == 'ema':
-                length = int(settings.get('value', 20))
-                ema_lengths.add(length)
-        
-        # Calculate all needed SMAs
-        for length in sma_lengths:
-            df[f'SMA_{length}'] = ta.sma(df['Close'], length=length)
-            
-        # Calculate all needed EMAs
-        for length in ema_lengths:
-            df[f'EMA_{length}'] = ta.ema(df['Close'], length=length)
+                elif indicator == 'ema':
+                    length = int(config['value'])
+                    df[f'EMA_{length}'] = ta.ema(df['Close'], length=length)
         
         return df
-        
     except Exception as e:
         print(f"Error calculating indicators: {str(e)}")
-        raise Exception(f"Error calculating indicators: {str(e)}")
+        return None
 
 def backtest_strategy(df, buy_indicators, sell_indicators):
     try:
