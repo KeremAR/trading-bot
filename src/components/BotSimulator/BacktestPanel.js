@@ -46,6 +46,34 @@ const BacktestPanel = ({
           />
         </div>
       );
+    } else if (key === 'bollinger') {
+      return (
+        <div className="ml-6 mt-2 space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="flex flex-col">
+              <label className="text-xs text-gray-400">Period</label>
+              <input
+                type="number"
+                value={indicator.value}
+                onChange={(e) => updateValue(key, null, e.target.value)}
+                className="w-16 p-1 bg-gray-700 text-white rounded-md"
+                placeholder="Period"
+              />
+            </div>
+            <div className="flex flex-col">
+              <label className="text-xs text-gray-400">StdDev</label>
+              <input
+                type="number"
+                step="0.1"
+                value={indicator.std_dev}
+                onChange={(e) => updateValue(key, null, e.target.value, true)}
+                className="w-16 p-1 bg-gray-700 text-white rounded-md"
+                placeholder="StdDev"
+              />
+            </div>
+          </div>
+        </div>
+      );
     }
 
     return (

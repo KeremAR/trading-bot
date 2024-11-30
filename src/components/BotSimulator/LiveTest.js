@@ -27,19 +27,19 @@ const LiveTest = ({
         <div className="flex gap-2">
           <input
             type="number"
-            className="w-16 px-2 py-1 bg-gray-700 rounded"
+            className="w-16 px-2 py-1 bg-gray-700 rounded text-white"
             value={config.values[0]}
             onChange={(e) => updateFunction(indicator, 0, e.target.value)}
           />
           <input
             type="number"
-            className="w-16 px-2 py-1 bg-gray-700 rounded"
+            className="w-16 px-2 py-1 bg-gray-700 rounded text-white"
             value={config.values[1]}
             onChange={(e) => updateFunction(indicator, 1, e.target.value)}
           />
           <input
             type="number"
-            className="w-16 px-2 py-1 bg-gray-700 rounded"
+            className="w-16 px-2 py-1 bg-gray-700 rounded text-white"
             value={config.values[2]}
             onChange={(e) => updateFunction(indicator, 2, e.target.value)}
           />
@@ -52,7 +52,7 @@ const LiveTest = ({
             <label className="text-xs text-gray-400">Period</label>
             <input
               type="number"
-              className="w-16 px-2 py-1 bg-gray-700 rounded"
+              className="w-16 px-2 py-1 bg-gray-700 rounded text-white"
               value={config.value}
               onChange={(e) => updateFunction(indicator, null, e.target.value)}
             />
@@ -62,7 +62,7 @@ const LiveTest = ({
             <input
               type="number"
               step="0.1"
-              className="w-16 px-2 py-1 bg-gray-700 rounded"
+              className="w-16 px-2 py-1 bg-gray-700 rounded text-white"
               value={config.std_dev}
               onChange={(e) => updateFunction(indicator, null, e.target.value, true)}
             />
@@ -73,7 +73,7 @@ const LiveTest = ({
       return (
         <input
           type="number"
-          className="w-16 px-2 py-1 bg-gray-700 rounded"
+          className="w-16 px-2 py-1 bg-gray-700 rounded text-white"
           value={config.value}
           onChange={(e) => updateFunction(indicator, null, e.target.value)}
         />

@@ -211,17 +211,27 @@ export default function Home() {
   const [buyIndicators, setBuyIndicators] = useState({
     rsi: { name: 'RSI', active: false, value: 30 },
     macd: { name: 'MACD', active: false, values: [12, 26, 9] },
+    bollinger: { 
+      name: 'Bollinger Bands', 
+      active: false, 
+      value: 20,  // period
+      std_dev: 2.0  // standard deviation
+    },
     sma: { name: 'SMA', active: false, value: 50 },
-    ema: { name: 'EMA', active: false, value: 20 },
-    bollinger: { name: 'Bollinger Bands', active: false, value: 20 }
+    ema: { name: 'EMA', active: false, value: 20 }
   });
 
   const [sellIndicators, setSellIndicators] = useState({
     rsi: { name: 'RSI', active: false, value: 70 },
     macd: { name: 'MACD', active: false, values: [12, 26, 9] },
+    bollinger: { 
+      name: 'Bollinger Bands', 
+      active: false, 
+      value: 20,  // period
+      std_dev: 2.0  // standard deviation
+    },
     sma: { name: 'SMA', active: false, value: 200 },
-    ema: { name: 'EMA', active: false, value: 50 },
-    bollinger: { name: 'Bollinger Bands', active: false, value: 20 }
+    ema: { name: 'EMA', active: false, value: 50 }
   });
 
   const toggleBuyIndicator = (indicatorKey) => {
@@ -245,27 +255,31 @@ export default function Home() {
     }));
   };
 
-  const updateBuyIndicatorValue = (key, valueIndex, newValue) => {
+  const updateBuyIndicatorValue = (key, valueIndex, newValue, isStdDev = false) => {
     setBuyIndicators(prev => ({
       ...prev,
       [key]: {
         ...prev[key],
         ...(valueIndex !== null
           ? { values: prev[key].values.map((v, i) => i === valueIndex ? Number(newValue) : v) }
-          : { value: Number(newValue) }
+          : isStdDev 
+            ? { std_dev: Number(newValue) }
+            : { value: Number(newValue) }
         )
       }
     }));
   };
 
-  const updateSellIndicatorValue = (key, valueIndex, newValue) => {
+  const updateSellIndicatorValue = (key, valueIndex, newValue, isStdDev = false) => {
     setSellIndicators(prev => ({
       ...prev,
       [key]: {
         ...prev[key],
         ...(valueIndex !== null
           ? { values: prev[key].values.map((v, i) => i === valueIndex ? Number(newValue) : v) }
-          : { value: Number(newValue) }
+          : isStdDev 
+            ? { std_dev: Number(newValue) }
+            : { value: Number(newValue) }
         )
       }
     }));
@@ -347,12 +361,7 @@ ${Array.isArray(data.logs) ? '\n<b>Trade History:</b>\n' + data.logs.join('\n') 
     macd: { name: 'MACD', active: false, values: [12, 26, 9] },
     sma: { name: 'SMA', active: false, value: 50 },
     ema: { name: 'EMA', active: false, value: 20 },
-    bollinger: { 
-      name: 'Bollinger Bands', 
-      active: false, 
-      value: 20,  // period
-      std_dev: 2.0  // standard deviation
-    }
+    bollinger: { name: 'Bollinger Bands', active: false, value: 20 }
   });
 
   const [liveSellIndicators, setLiveSellIndicators] = useState({
@@ -360,12 +369,7 @@ ${Array.isArray(data.logs) ? '\n<b>Trade History:</b>\n' + data.logs.join('\n') 
     macd: { name: 'MACD', active: false, values: [12, 26, 9] },
     sma: { name: 'SMA', active: false, value: 200 },
     ema: { name: 'EMA', active: false, value: 50 },
-    bollinger: { 
-      name: 'Bollinger Bands', 
-      active: false, 
-      value: 20,  // period
-      std_dev: 2.0  // standard deviation
-    }
+    bollinger: { name: 'Bollinger Bands', active: false, value: 20 }
   });
 
   const toggleLiveBuyIndicator = (indicatorKey) => {
@@ -389,31 +393,27 @@ ${Array.isArray(data.logs) ? '\n<b>Trade History:</b>\n' + data.logs.join('\n') 
     }));
   };
 
-  const updateLiveBuyIndicatorValue = (key, valueIndex, newValue, isStdDev = false) => {
+  const updateLiveBuyIndicatorValue = (key, valueIndex, newValue) => {
     setLiveBuyIndicators(prev => ({
       ...prev,
       [key]: {
         ...prev[key],
         ...(valueIndex !== null
           ? { values: prev[key].values.map((v, i) => i === valueIndex ? Number(newValue) : v) }
-          : isStdDev 
-            ? { std_dev: Number(newValue) }
-            : { value: Number(newValue) }
+          : { value: Number(newValue) }
         )
       }
     }));
   };
 
-  const updateLiveSellIndicatorValue = (key, valueIndex, newValue, isStdDev = false) => {
+  const updateLiveSellIndicatorValue = (key, valueIndex, newValue) => {
     setLiveSellIndicators(prev => ({
       ...prev,
       [key]: {
         ...prev[key],
         ...(valueIndex !== null
           ? { values: prev[key].values.map((v, i) => i === valueIndex ? Number(newValue) : v) }
-          : isStdDev 
-            ? { std_dev: Number(newValue) }
-            : { value: Number(newValue) }
+          : { value: Number(newValue) }
         )
       }
     }));
