@@ -74,39 +74,67 @@ def calculate_dynamic_indicators(df, buy_indicators, sell_indicators):
         for indicator, config in all_indicators.items():
             if config['active']:
                 if indicator == 'bollinger':
-                    # Add standard deviation parameter (default to 2 if not specified)
-                    period = int(config.get('value', 20))  # Default period is 20
-                    std_dev = float(config.get('std_dev', 2.0))  # Default std_dev is 2
+                    period = int(config.get('value', 20))
+                    std_dev = float(config.get('std_dev', 2.0))
                     
-                    # Calculate middle band (SMA)
                     df['middle_band'] = df['Close'].rolling(window=period).mean()
-                    # Calculate standard deviation
                     df['std'] = df['Close'].rolling(window=period).std()
-                    # Calculate upper and lower bands
                     df['upper_band'] = df['middle_band'] + (df['std'] * std_dev)
                     df['lower_band'] = df['middle_band'] - (df['std'] * std_dev)
                     
-                    print(f"Calculated Bollinger Bands with period={period} and std_dev={std_dev}")
-                
                 elif indicator == 'rsi':
                     length = int(config['value'])
                     df['RSI'] = ta.rsi(df['Close'], length=length)
                 
                 elif indicator == 'macd':
-                    fast = int(config['values'][0])
-                    slow = int(config['values'][1])
-                    signal = int(config['values'][2])
-                    df['MACD'] = ta.macd(df['Close'], fast=fast, slow=slow)['MACD']
-                    df['MACD_signal'] = ta.macd(df['Close'], fast=fast, slow=slow)['MACDs']
+                    try:
+                        fast = int(config['values'][0])
+                        slow = int(config['values'][1])
+                        signal = int(config['values'][2])
+                        
+                        # Calculate MACD
+                        exp1 = df['Close'].ewm(span=fast, adjust=False).mean()
+                        exp2 = df['Close'].ewm(span=slow, adjust=False).mean()
+                        macd_line = exp1 - exp2
+                        signal_line = macd_line.ewm(span=signal, adjust=False).mean()
+                        
+                        df['MACD'] = macd_line
+                        df['MACD_signal'] = signal_line
+                        
+                        print(f"MACD calculated successfully: Fast={fast}, Slow={slow}, Signal={signal}")
+                    except Exception as e:
+                        print(f"Error calculating MACD: {str(e)}")
+                        return None
                 
                 elif indicator == 'sma':
-                    length = int(config['value'])
-                    df[f'SMA_{length}'] = ta.sma(df['Close'], length=length)
+                    length = str(config['value'])  # Convert to string for column name
+                    df[f'SMA_{length}'] = ta.sma(df['Close'], length=int(length))
                 
                 elif indicator == 'ema':
-                    length = int(config['value'])
-                    df[f'EMA_{length}'] = ta.ema(df['Close'], length=length)
+                    length = str(config['value'])  # Convert to string for column name
+                    df[f'EMA_{length}'] = ta.ema(df['Close'], length=int(length))
         
+        # Verify all required columns exist
+        required_columns = ['Close']
+        for indicator, config in all_indicators.items():
+            if config['active']:
+                if indicator == 'rsi':
+                    required_columns.append('RSI')
+                elif indicator == 'macd':
+                    required_columns.extend(['MACD', 'MACD_signal'])
+                elif indicator == 'bollinger':
+                    required_columns.extend(['upper_band', 'lower_band'])
+                elif indicator == 'sma':
+                    required_columns.append(f"SMA_{config['value']}")
+                elif indicator == 'ema':
+                    required_columns.append(f"EMA_{config['value']}")
+        
+        # Check if all required columns exist
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        if missing_columns:
+            print(f"Missing columns: {missing_columns}")
+            return None
+            
         return df
     except Exception as e:
         print(f"Error calculating indicators: {str(e)}")
@@ -500,11 +528,21 @@ def check_buy_signals(df, buy_indicators):
             elif indicator == 'bollinger':
                 buy_signal &= df['Close'].iloc[-1] <= df['lower_band'].iloc[-1]
             elif indicator == 'sma':
-                length = int(config['value'])
-                buy_signal &= df['Close'].iloc[-1] > df[f'SMA_{length}'].iloc[-1]
+                length = str(config['value'])  # Convert to string for column name
+                col_name = f'SMA_{length}'
+                if col_name in df.columns:  # Check if column exists
+                    buy_signal &= df['Close'].iloc[-1] > df[col_name].iloc[-1]
+                else:
+                    print(f"Column {col_name} not found in dataframe")
+                    return False
             elif indicator == 'ema':
-                length = int(config['value'])
-                buy_signal &= df['Close'].iloc[-1] > df[f'EMA_{length}'].iloc[-1]
+                length = str(config['value'])  # Convert to string for column name
+                col_name = f'EMA_{length}'
+                if col_name in df.columns:  # Check if column exists
+                    buy_signal &= df['Close'].iloc[-1] > df[col_name].iloc[-1]
+                else:
+                    print(f"Column {col_name} not found in dataframe")
+                    return False
     return buy_signal
 
 def check_sell_signals(df, sell_indicators):
@@ -521,11 +559,21 @@ def check_sell_signals(df, sell_indicators):
             elif indicator == 'bollinger':
                 sell_signal &= df['Close'].iloc[-1] >= df['upper_band'].iloc[-1]
             elif indicator == 'sma':
-                length = int(config['value'])
-                sell_signal &= df['Close'].iloc[-1] < df[f'SMA_{length}'].iloc[-1]
+                length = str(config['value'])  # Convert to string for column name
+                col_name = f'SMA_{length}'
+                if col_name in df.columns:  # Check if column exists
+                    sell_signal &= df['Close'].iloc[-1] < df[col_name].iloc[-1]
+                else:
+                    print(f"Column {col_name} not found in dataframe")
+                    return False
             elif indicator == 'ema':
-                length = int(config['value'])
-                sell_signal &= df['Close'].iloc[-1] < df[f'EMA_{length}'].iloc[-1]
+                length = str(config['value'])  # Convert to string for column name
+                col_name = f'EMA_{length}'
+                if col_name in df.columns:  # Check if column exists
+                    sell_signal &= df['Close'].iloc[-1] < df[col_name].iloc[-1]
+                else:
+                    print(f"Column {col_name} not found in dataframe")
+                    return False
     return sell_signal
 
 def get_timeframe_minutes(timeframe):
