@@ -296,9 +296,12 @@ def get_initial_balance():
 @app.route('/api/livetest/start', methods=['POST'])
 def start_livetest():
     try:
+        print("Received start live test request") # Debug log
         data = request.get_json()
         symbol = f"{data['coin']}USDT"
-        timeframe = get_interval_string(data['timeFrame'])
+        timeframe = data['timeFrame']
+        
+        print(f"Starting live test for {symbol} on {timeframe}") # Debug log
         
         # Initialize live test parameters
         live_test = {
@@ -306,7 +309,7 @@ def start_livetest():
             'timeframe': timeframe,
             'buy_indicators': data['buyIndicators'],
             'sell_indicators': data['sellIndicators'],
-            'position': 0,  # 0: no position, 1: holding
+            'position': 0,
             'balance': 10000,
             'amount': 0,
             'trades': 0,
@@ -317,6 +320,7 @@ def start_livetest():
         
         # Store live test configuration in memory
         app.live_tests[symbol] = live_test
+        print(f"Live test configuration stored: {app.live_tests}") # Debug log
         
         return jsonify({
             'success': True,
@@ -324,7 +328,7 @@ def start_livetest():
         })
         
     except Exception as e:
-        print(f"Error starting live test: {str(e)}")
+        print(f"Error in start_livetest: {str(e)}") # Debug log
         return jsonify({
             'success': False,
             'error': str(e)
@@ -333,10 +337,15 @@ def start_livetest():
 @app.route('/api/livetest/check', methods=['POST'])
 def check_livetest():
     try:
+        print("Received check live test request") # Debug log
         data = request.get_json()
         symbol = f"{data['coin']}USDT"
         
+        print(f"Checking live test for {symbol}") # Debug log
+        print(f"Current live tests: {app.live_tests}") # Debug log
+        
         if symbol not in app.live_tests:
+            print(f"No live test found for {symbol}") # Debug log
             return jsonify({
                 'success': False,
                 'error': 'No active live test found for this symbol'
@@ -344,9 +353,10 @@ def check_livetest():
             
         live_test = app.live_tests[symbol]
         
-        # Get latest candle data
+        # Get last 100 candles
         end_time = int(datetime.now().timestamp() * 1000)
-        start_time = end_time - (get_timeframe_minutes(live_test['timeframe']) * 60 * 1000 * 2)  # Get 2 candles
+        minutes_multiplier = get_timeframe_minutes(live_test['timeframe'])
+        start_time = end_time - (minutes_multiplier * 60 * 1000 * 100)
         
         df = get_historical_klines(symbol, live_test['timeframe'], start_time, end_time)
         
@@ -358,18 +368,83 @@ def check_livetest():
             
         df = calculate_dynamic_indicators(df, live_test['buy_indicators'], live_test['sell_indicators'])
         
-        if df is None or df.empty:
-            return jsonify({
-                'success': False,
-                'error': 'Failed to calculate indicators'
-            }), 400
-            
-        current_price = df['Close'].iloc[-1]
+        # Collect indicator values
+        latest_data = df.iloc[-1]
+        current_price = latest_data['Close']
         current_time = df.index[-1].strftime('%Y-%m-%d %H:%M:%S')
         
-        # Check for signals
-        buy_signal = check_buy_signals(df, live_test['buy_indicators'])
-        sell_signal = check_sell_signals(df, live_test['sell_indicators'])
+        indicator_values = {
+            'time': current_time,
+            'price': float(current_price),
+            'buy_indicators': {},
+            'sell_indicators': {}
+        }
+        
+        # Collect buy indicator values
+        for indicator, config in live_test['buy_indicators'].items():
+            if config['active']:
+                if indicator == 'rsi':
+                    indicator_values['buy_indicators']['rsi'] = {
+                        'value': float(latest_data['RSI']),
+                        'threshold': config['value']
+                    }
+                elif indicator == 'macd':
+                    indicator_values['buy_indicators']['macd'] = {
+                        'macd': float(latest_data['MACD']),
+                        'signal': float(latest_data['MACD_signal'])
+                    }
+                elif indicator == 'bollinger':
+                    indicator_values['buy_indicators']['bollinger'] = {
+                        'price': float(latest_data['Close']),
+                        'lower': float(latest_data['lower_band'])
+                    }
+                elif indicator == 'sma':
+                    indicator_values['buy_indicators']['sma'] = {
+                        'price': float(latest_data['Close']),
+                        'sma': float(latest_data[f"SMA_{config['value']}"]),
+                        'period': config['value']
+                    }
+                elif indicator == 'ema':
+                    indicator_values['buy_indicators']['ema'] = {
+                        'price': float(latest_data['Close']),
+                        'ema': float(latest_data[f"EMA_{config['value']}"]),
+                        'period': config['value']
+                    }
+
+        # Collect sell indicator values
+        for indicator, config in live_test['sell_indicators'].items():
+            if config['active']:
+                if indicator == 'rsi':
+                    indicator_values['sell_indicators']['rsi'] = {
+                        'value': float(latest_data['RSI']),
+                        'threshold': config['value']
+                    }
+                elif indicator == 'macd':
+                    indicator_values['sell_indicators']['macd'] = {
+                        'macd': float(latest_data['MACD']),
+                        'signal': float(latest_data['MACD_signal'])
+                    }
+                elif indicator == 'bollinger':
+                    indicator_values['sell_indicators']['bollinger'] = {
+                        'price': float(latest_data['Close']),
+                        'upper': float(latest_data['upper_band'])
+                    }
+                elif indicator == 'sma':
+                    indicator_values['sell_indicators']['sma'] = {
+                        'price': float(latest_data['Close']),
+                        'sma': float(latest_data[f"SMA_{config['value']}"]),
+                        'period': config['value']
+                    }
+                elif indicator == 'ema':
+                    indicator_values['sell_indicators']['ema'] = {
+                        'price': float(latest_data['Close']),
+                        'ema': float(latest_data[f"EMA_{config['value']}"]),
+                        'period': config['value']
+                    }
+
+        # Check for signals using the last row of data
+        buy_signal = check_buy_signals(df.iloc[-1:], live_test['buy_indicators'])
+        sell_signal = check_sell_signals(df.iloc[-1:], live_test['sell_indicators'])
         
         trade_executed = False
         message = None
@@ -381,26 +456,38 @@ def check_livetest():
             live_test['position'] = 1
             live_test['trades'] += 1
             trade_executed = True
-            message = f"<span style='color: #22c55e'>Buy Signal: Date: {current_time}, Price: {current_price:.2f}, Balance: ${live_test['amount'] * current_price:.2f}</span>"
+            message = f"<span style='color: #22c55e'>Buy Signal: Date: {current_time}, Price: {current_price:.2f}, Amount: {live_test['amount']:.8f} {data['coin']}</span>"
             
         elif sell_signal and live_test['position'] == 1:
             live_test['balance'] = live_test['amount'] * current_price
+            profit = ((current_price - live_test['buy_price']) / live_test['buy_price']) * 100
             if current_price > live_test['buy_price']:
                 live_test['wins'] += 1
             live_test['amount'] = 0
             live_test['position'] = 0
             trade_executed = True
-            message = f"<span style='color: #ef4444'>Sell Signal: Date: {current_time}, Price: {current_price:.2f}, Balance: ${live_test['balance']:.2f}</span>"
+            message = f"<span style='color: #ef4444'>Sell Signal: Date: {current_time}, Price: {current_price:.2f}, Profit: {profit:.2f}%</span>"
+        
+        # Add current status even if no trade was executed
+        status_message = None
+        if not trade_executed:
+            if live_test['position'] == 1:
+                unrealized_profit = ((current_price - live_test['buy_price']) / live_test['buy_price']) * 100
+                status_message = f"<span style='color: #94a3b8'>Current Status: Holding {live_test['amount']:.8f} {data['coin']}, Entry: {live_test['buy_price']:.2f}, Current: {current_price:.2f}, Unrealized Profit: {unrealized_profit:.2f}%</span>"
+            else:
+                status_message = f"<span style='color: #94a3b8'>Current Status: Waiting for buy signal. Balance: ${live_test['balance']:.2f}</span>"
         
         return jsonify({
             'success': True,
             'trade_executed': trade_executed,
             'message': message,
+            'status_message': status_message,
             'current_price': current_price,
             'position': live_test['position'],
             'balance': live_test['balance'],
             'trades': live_test['trades'],
-            'win_rate': (live_test['wins'] / live_test['trades'] * 100) if live_test['trades'] > 0 else 0
+            'win_rate': (live_test['wins'] / live_test['trades'] * 100) if live_test['trades'] > 0 else 0,
+            'indicator_values': indicator_values  # Add indicator values to response
         })
         
     except Exception as e:
@@ -455,12 +542,14 @@ def check_sell_signals(df, sell_indicators):
 def get_timeframe_minutes(timeframe):
     timeframe_map = {
         '1m': 1,
+        '5m': 5,
         '15m': 15,
+        '30m': 30,
         '1h': 60,
         '4h': 240,
         '1d': 1440
     }
-    return timeframe_map.get(timeframe, 60)  # default to 1h if timeframe not found
+    return timeframe_map.get(timeframe, 60)
 
 # Add at the end of the file
 if __name__ == '__main__':

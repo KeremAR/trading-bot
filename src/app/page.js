@@ -459,10 +459,21 @@ ${Array.isArray(data.logs) ? '\n<b>Trade History:</b>\n' + data.logs.join('\n') 
   const [isLiveTestRunning, setIsLiveTestRunning] = useState(false);
   const [liveTestInterval, setLiveTestInterval] = useState(null);
 
-  // Update the checkLiveTest function
+  // Create a ref to track the running state
+  const isRunningRef = useRef(false);
+
+  // Update the useEffect to use the ref
+  useEffect(() => {
+    isRunningRef.current = isLiveTestRunning;
+  }, [isLiveTestRunning]);
+
   const checkLiveTest = async () => {
-    if (!isLiveTestRunning) return; // Don't check if not running
+    if (!isRunningRef.current) {
+      console.log('Live test is not running, skipping check'); // Debug log
+      return;
+    }
     
+    console.log('Making API call to check live test...'); // Debug log
     try {
       const response = await fetch(`${baseUrl}/api/livetest/check`, {
         method: 'POST',
@@ -475,8 +486,31 @@ ${Array.isArray(data.logs) ? '\n<b>Trade History:</b>\n' + data.logs.join('\n') 
       });
 
       const data = await response.json();
+      console.log('Received response from check API:', data); // Debug log
       
       if (data.success) {
+        // Log indicator values
+        if (data.indicator_values) {
+          console.log('\n=== Current Indicator Values ===');
+          console.log(`Time: ${data.indicator_values.time}`);
+          console.log(`Price: ${data.indicator_values.price}`);
+          
+          if (Object.keys(data.indicator_values.buy_indicators).length > 0) {
+            console.log('\nBuy Indicators:');
+            Object.entries(data.indicator_values.buy_indicators).forEach(([indicator, values]) => {
+              console.log(`${indicator.toUpperCase()}:`, values);
+            });
+          }
+          
+          if (Object.keys(data.indicator_values.sell_indicators).length > 0) {
+            console.log('\nSell Indicators:');
+            Object.entries(data.indicator_values.sell_indicators).forEach(([indicator, values]) => {
+              console.log(`${indicator.toUpperCase()}:`, values);
+            });
+          }
+          console.log('============================\n');
+        }
+
         if (data.trade_executed && data.message) {
           setResults(prevResults => ({
             message: (prevResults?.message || '') + `\n${data.message}`
@@ -495,9 +529,9 @@ ${Array.isArray(data.logs) ? '\n<b>Trade History:</b>\n' + data.logs.join('\n') 
     }
   };
 
-  // Update the handleStopLivetest function
   const handleStopLivetest = () => {
-    setIsLiveTestRunning(false); // Set this first
+    isRunningRef.current = false; // Update ref first
+    setIsLiveTestRunning(false);
     
     if (liveTestInterval) {
       clearInterval(liveTestInterval);
@@ -510,11 +544,11 @@ ${Array.isArray(data.logs) ? '\n<b>Trade History:</b>\n' + data.logs.join('\n') 
     }));
   };
 
-  // Update the handleStartLivetest function
   const handleStartLivetest = async () => {
     if (isLiveTestRunning) return; // Prevent multiple starts
     
     try {
+      console.log('Starting live test...'); // Debug log
       const response = await fetch(`${baseUrl}/api/livetest/start`, {
         method: 'POST',
         headers: {
@@ -531,15 +565,21 @@ ${Array.isArray(data.logs) ? '\n<b>Trade History:</b>\n' + data.logs.join('\n') 
       const data = await response.json();
       
       if (data.success) {
-        setIsLiveTestRunning(true);
+        console.log('Live test started successfully'); // Debug log
+        setIsLiveTestRunning(true); // Set running state
+        
+        // Start periodic checking
+        console.log('Setting up interval for checking...'); // Debug log
+        const newInterval = setInterval(() => {
+          console.log('Checking live test...', isLiveTestRunning); // Debug log with state
+          checkLiveTest();
+        }, 5000);
+        setLiveTestInterval(newInterval);
+        
         setResults(prevResults => ({
           message: (prevResults?.message || '') + 
             `\n<span style='color: #94a3b8'>[${new Date().toLocaleTimeString()}] ${data.message}</span>`
         }));
-
-        // Start periodic checking
-        const interval = setInterval(checkLiveTest, 5000);
-        setLiveTestInterval(interval);
       } else {
         throw new Error(data.error);
       }
