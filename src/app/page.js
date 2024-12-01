@@ -355,68 +355,128 @@ ${Array.isArray(data.logs) ? '\n<b>Trade History:</b>\n' + data.logs.join('\n') 
     setShowBotLogs(true);
   };
 
-  // Add these new states for LiveTest
+  // Common indicators (shared between buy and sell)
+  const commonLiveIndicators = {
+    macd: { name: 'MACD', active: false, values: [12, 26, 9] },
+    bollinger: { 
+      name: 'Bollinger Bands', 
+      active: false, 
+      value: 20,
+      std_dev: 2.0
+    },
+    sma: { name: 'SMA', active: false, value: 50 },
+    ema: { name: 'EMA', active: false, value: 20 }
+  };
+
+  // Initial states with only RSI being different
   const [liveBuyIndicators, setLiveBuyIndicators] = useState({
     rsi: { name: 'RSI', active: false, value: 30 },
-    macd: { name: 'MACD', active: false, values: [12, 26, 9] },
-    sma: { name: 'SMA', active: false, value: 50 },
-    ema: { name: 'EMA', active: false, value: 20 },
-    bollinger: { name: 'Bollinger Bands', active: false, value: 20 }
+    ...commonLiveIndicators
   });
 
   const [liveSellIndicators, setLiveSellIndicators] = useState({
     rsi: { name: 'RSI', active: false, value: 70 },
-    macd: { name: 'MACD', active: false, values: [12, 26, 9] },
-    sma: { name: 'SMA', active: false, value: 200 },
-    ema: { name: 'EMA', active: false, value: 50 },
-    bollinger: { name: 'Bollinger Bands', active: false, value: 20 }
+    ...commonLiveIndicators
   });
 
+  // Update toggle functions to sync non-RSI indicators
   const toggleLiveBuyIndicator = (indicatorKey) => {
-    console.log('Live test toggle called for:', indicatorKey);
-    setLiveBuyIndicators(prev => ({
-      ...prev,
-      [indicatorKey]: {
-        ...prev[indicatorKey],
-        active: !prev[indicatorKey].active
+    setLiveBuyIndicators(prev => {
+      const newState = {
+        ...prev,
+        [indicatorKey]: {
+          ...prev[indicatorKey],
+          active: !prev[indicatorKey].active
+        }
+      };
+      
+      // Sync with sell indicators if not RSI
+      if (indicatorKey !== 'rsi') {
+        setLiveSellIndicators(prevSell => ({
+          ...prevSell,
+          [indicatorKey]: newState[indicatorKey]
+        }));
       }
-    }));
+      
+      return newState;
+    });
   };
 
   const toggleLiveSellIndicator = (indicatorKey) => {
-    setLiveSellIndicators(prev => ({
-      ...prev,
-      [indicatorKey]: {
-        ...prev[indicatorKey],
-        active: !prev[indicatorKey].active
+    setLiveSellIndicators(prev => {
+      const newState = {
+        ...prev,
+        [indicatorKey]: {
+          ...prev[indicatorKey],
+          active: !prev[indicatorKey].active
+        }
+      };
+      
+      // Sync with buy indicators if not RSI
+      if (indicatorKey !== 'rsi') {
+        setLiveBuyIndicators(prevBuy => ({
+          ...prevBuy,
+          [indicatorKey]: newState[indicatorKey]
+        }));
       }
-    }));
+      
+      return newState;
+    });
   };
 
-  const updateLiveBuyIndicatorValue = (key, valueIndex, newValue) => {
-    setLiveBuyIndicators(prev => ({
-      ...prev,
-      [key]: {
-        ...prev[key],
-        ...(valueIndex !== null
-          ? { values: prev[key].values.map((v, i) => i === valueIndex ? Number(newValue) : v) }
-          : { value: Number(newValue) }
-        )
+  // Update value update functions to sync non-RSI indicators
+  const updateLiveBuyIndicatorValue = (key, valueIndex, newValue, isStdDev = false) => {
+    setLiveBuyIndicators(prev => {
+      const newState = {
+        ...prev,
+        [key]: {
+          ...prev[key],
+          ...(valueIndex !== null
+            ? { values: prev[key].values.map((v, i) => i === valueIndex ? Number(newValue) : v) }
+            : isStdDev 
+              ? { std_dev: Number(newValue) }
+              : { value: Number(newValue) }
+          )
+        }
+      };
+      
+      // Sync with sell indicators if not RSI
+      if (key !== 'rsi') {
+        setLiveSellIndicators(prevSell => ({
+          ...prevSell,
+          [key]: newState[key]
+        }));
       }
-    }));
+      
+      return newState;
+    });
   };
 
-  const updateLiveSellIndicatorValue = (key, valueIndex, newValue) => {
-    setLiveSellIndicators(prev => ({
-      ...prev,
-      [key]: {
-        ...prev[key],
-        ...(valueIndex !== null
-          ? { values: prev[key].values.map((v, i) => i === valueIndex ? Number(newValue) : v) }
-          : { value: Number(newValue) }
-        )
+  const updateLiveSellIndicatorValue = (key, valueIndex, newValue, isStdDev = false) => {
+    setLiveSellIndicators(prev => {
+      const newState = {
+        ...prev,
+        [key]: {
+          ...prev[key],
+          ...(valueIndex !== null
+            ? { values: prev[key].values.map((v, i) => i === valueIndex ? Number(newValue) : v) }
+            : isStdDev 
+              ? { std_dev: Number(newValue) }
+              : { value: Number(newValue) }
+          )
+        }
+      };
+      
+      // Sync with buy indicators if not RSI
+      if (key !== 'rsi') {
+        setLiveBuyIndicators(prevBuy => ({
+          ...prevBuy,
+          [key]: newState[key]
+        }));
       }
-    }));
+      
+      return newState;
+    });
   };
 
   const handleRunLivetest = () => {
