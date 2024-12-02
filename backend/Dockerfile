@@ -8,13 +8,15 @@ RUN apt-get update && apt-get install -y \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Python paketlerini yüklemek için requirements.txt oluşturacağız
+# Python paketlerini yüklemek için requirements.txt kopyala
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Uygulama kodunu kopyala
-COPY backend.py .
+# Flask'ı debug modunda çalıştır
+ENV FLASK_ENV=development
+ENV FLASK_DEBUG=1
 
 EXPOSE 5000
 
-CMD ["python", "backend.py"] 
+# Python'ı interaktif modda çalıştır
+CMD ["python", "-u", "backend.py"] 

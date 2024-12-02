@@ -300,9 +300,9 @@ export default function Home() {
                 .filter(([_, value]) => value.active)
         );
 
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        // Remove any trailing slash from apiUrl if it exists
-        const baseUrl = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
+        if (!baseUrl) {
+            throw new Error('API URL is not configured');
+        }
         
         const response = await fetch(`${baseUrl}/api/backtest`, {
             method: 'POST',
